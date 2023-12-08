@@ -38,21 +38,29 @@ If it is required and consent has not yet been given, the script ends at this po
 
 ### Get Services Consent data
 First, an empty object (array) is created for the services.
+A check is then carried out to see whether the CMP object and its property 'acceptedEmbeddings' have the correct type and are not 'null'.
+The property, which is an array, is then processed item by item. If the value for 'name' is a string and not empty, it will be entered into the previously created service array. All existing commas are removed because in the later check in the Tag Manager the strings to be checked are checked in the format ',SERVICE,'. This is so that the service can actually be found.
+Examples:
+It checks whether 'Google' is included
+',Google, Ireland,' && ',Google,' both are found
+It checks whether 'Google' is included
+',Google, Ireland,' && ',Google,' only the first value is found
 
 ### Sort Service Array and stringify it
-
+If at least one service is included, they will be sorted alphabetically first. This has no influence on the programming itself. However, if you want to look at the services on the console and the number is high, it is easier to find a specific service.
+Now the array is converted into a string, which separates the services with a comma and adds a final comma at the end of the string.
 
 ### Build feedback
+The 'feedback' property is assigned a default value.
 
 ### Get some more info about how consent was given, if available
-
+The CCM object has a property that provides information about whether all services have been approved or only some. By the way, the services that are always necessary are also counted. That's why the messages never say that all services have been refused.
 
 ### Get Consent ID
+In order to view the history of consent or send it to the responsible website operator, you need the Consent ID. This is saved in the CMP object under 'ucid' and passed to the script in this step. Dies ist in einigen speziellen Fällen notwendig, um auswerten zu können, wann der User einen Service an- oder abgewählt hat. Dies hat nichts mit der User ID zu tun, welche in den tag Managern gespeichert werden kann.
 
 ### Set Response
-
+Now the response 'o.hasResponse' is set to 'true', which indicates to the main script that the consent status was successfully recorded and processed.
 
 ### Callback and Return
-
-
-This is a test. hlholbnjlpbhnjhpöhnbhnpöhnpöki
+All data is then passed to the main script and the success is logged.
