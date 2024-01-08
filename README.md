@@ -466,14 +466,18 @@ Feel free to contact me if you found problems or improvements:
 
 ## Changelog ##
 
-- Version 1.2.2, 06.12.2023
+- Version 1.3, *10.12.2023*
+  - Event Listener Function added
+  - .gitignore addition
+
+- Version 1.2.2, *06.12.2023*
   - Bugfixes Consent Check Fallback function
 
-- Version 1.2.1, 05.12.2023
+- Version 1.2.1, *05.12.2023*
   - Bugfixes in Helper Function and Config Check
   - Added a folder with minified versions of the files
 
-- Version 1.2, 02.12.2023
+- Version 1.2, *02.12.2023*
   - Services added to Consent Check/Info
   - Added the possibility to use more than one GTAG
 
