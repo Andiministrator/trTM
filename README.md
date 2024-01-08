@@ -466,6 +466,9 @@ Feel free to contact me if you found problems or improvements:
 
 ## Changelog ##
 
+- Version 1.3.1, *19.12.2023*
+  - Problems solved with missing Pageviews and double events
+
 - Version 1.3, *10.12.2023*
   - Event Listener Function added
   - .gitignore addition

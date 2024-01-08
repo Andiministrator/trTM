@@ -2,10 +2,10 @@
 
 /**
  * Global implementation script/object for Google GTAG and Tag Manager, depending on the user consent.
- * @version 1.3
- * @lastupdate 10.12.2023 by Andi Petzoldt <andi@petzoldt.net>
+ * @version 1.3.1, Netdoktor Version
+ * @lastupdate 19.12.2023 by Andi Petzoldt <andi@tracking-garden.com>
  * @author Andi Petzoldt <andi@petzoldt.net>
- * @documentation see README.md
+ * @documentation see README_Netdoktor_Implementation.md or README_trTM.md for general information about trTM
  * @usage (with example config)
  *   trTM.f.config({ env:'&gtm_auth=ABC123xyz&gtm_preview=env-1&gtm_cookies_win=x', gtmID:'GTM-XYZ123' });
  *   trTM.f.tm_inject();
@@ -15,7 +15,7 @@
 window.trTM = window.trTM || {}; // Tag Manager Global Object
 trTM.c = trTM.c || {}; // TM Configuration Settings Object
 trTM.d = trTM.d || {}; // TM Data Object
-trTM.d.version = '1.3'; // trTM Version
+trTM.d.version = '1.3.1'; // trTM Version
 trTM.d.config = trTM.d.config || false; // is TM is configured?
 trTM.d.init = trTM.d.init || false; // is TM Initialisation complete?
 trTM.d.fired = trTM.d.fired || false; // is TM active (was fired)
@@ -142,7 +142,11 @@ trTM.f.evLstn = trTM.f.evLstn || function(el, ev, ft) {
 
 /**
  * Function to check, whether the user consent info/choice exists and for what purposes and vendors
- * @type: No consent tool, this is the fallback function
+ * @usage use it together with trTMlib and see the documentation there
+ * @type: Sourcepoint
+ * @version 1.1
+ * @lastupdate 03.12.2023 by Andi Petzoldt <andi@petzoldt.net>
+ * @author Andi Petzoldt <andi@petzoldt.net>
  * @property {function} trTM.f.consent_check
  * @param {string} action - the action, what the function should do. can be "init" (for the first consent check) or "update" (for updating existing consent info)
  * @returns {boolean} - true, if consent is available, false if not
@@ -261,9 +265,11 @@ if (typeof trTM.f.tm_init!='function') trTM.f.tm_init = function (w, d, i, l, e)
   if (!trTM.d.config) { trTM.f.log('e7', null); return; }
   if (!trTM.d.init) {
     trTM.d.init = true;
-    var o = {'event':'g'+'tm.js','initTime':new Date().getTime(),'gtm.start':new Date().getTime()};
-    trTM.d.dl.push(o);
-    /*w[l]=w[l]||[];*/ w[l].push(o);
+    if (!trTM.c.gtag || typeof trTM.d.consent.gtagConsent!='boolean' || !trTM.d.consent.gtagConsent) {
+      var o = {'event':'g'+'tm.js','initTime':new Date().getTime(),'gtm.start':new Date().getTime()};
+      trTM.d.dl.push(o);
+      /*w[l]=w[l]||[];*/ w[l].push(o);
+    }
     var s = 'script', f = d.getElementsByTagName(s)[0], j = d.createElement(s);
     j.src = 'https://www.goo'+'glet'+'agmanager.com/g'+'tm.js?id=G'+'TM-'+i + '&l='+l+e;
     j.async = true; f.parentNode.insertBefore(j, f);
@@ -353,6 +359,13 @@ if (typeof trTM.f.tm_inject!='function') trTM.f.tm_inject = function () {
     return false;
   }
   if (!trTM.d.fired) {
+    // Initiate gtag
+    if ((trTM.c.gtag && trTM.d.consent.gtagConsent) || (trTM.c.tmID && trTM.d.consent.gtmConsent)) {
+      var tmpDL = window[trTM.c.gdl] || [];
+      window[trTM.c.gdl] = [];
+      if (trTM.c.consent.cm && typeof trTM.d.cm=='object') gtag('consent', 'default', trTM.d.cm);
+      trTM.f.fire({ event:'trTM_consent_init', cmp:trTM.d.consent, gtag:false });
+    }
     // Inject GTAG
     if (trTM.c.gtag && trTM.d.consent.gtagConsent) {
       var gtags = [];
@@ -367,6 +380,14 @@ if (typeof trTM.f.tm_inject!='function') trTM.f.tm_inject = function () {
         for (var k in trTM.c.gtag) {
           var gc = trTM.c.gtag[k];
           if (gc) { gtag('config', k, gc); } else { gtag('config', k); };
+          /* deprecated: UA tracker create */ if (k.substring(0,3)=='UA-' && typeof ga=='function') ga('create', k, gc ? gc : 'auto');
+          /*if (gc && (typeof gc.send_page_view=='undefined' || (typeof gc.send_page_view=='boolean' && gc.send_page_view))) {
+            gtag('event', 'page_view', {
+               send_to: k
+              ,page_title: document.title
+              ,page_location: document.location.href
+            });
+          }*/
         }
         if (typeof trTM.f.gtag_inject_callback=='function') trTM.f.gtag_inject_callback();
         trTM.f.log('m5', trTM.c.gtag);
@@ -374,10 +395,6 @@ if (typeof trTM.f.tm_inject!='function') trTM.f.tm_inject = function () {
     }
     // Inject GTM
     if (trTM.c.tmID && trTM.d.consent.gtmConsent) {
-      var tmpDL = window[trTM.c.gdl] || [];
-      window[trTM.c.gdl] = [];
-      if (trTM.c.consent.cm && typeof trTM.d.cm=='object') gtag('consent', 'default', trTM.d.cm);
-      trTM.f.fire({ event:'trTM_consent_init', cmp:trTM.d.consent });
       var latDL = [];
       if (tmpDL.length>0) {
         for (var i=0; i<tmpDL.length; i++) {
@@ -387,16 +404,16 @@ if (typeof trTM.f.tm_inject!='function') trTM.f.tm_inject = function () {
           }
           var ev = JSON.parse(JSON.stringify(tmpDL[i]));
           if (typeof ev['gtm.uniqueEventId']!='undefined') delete ev['gtm.uniqueEventId'];
-          if (ev.event.substr(0,4)=='gtm.') {
+          /*if (ev.event.substr(0,4)=='gtm.') {
             trTM.f.fire(ev);
-          } else { trTM.d.dl.push(ev); latDL.push(ev); }
+          } else { trTM.d.dl.push(ev); latDL.push(ev); }*/
         }
       }
       // Inject GTM
       trTM.f.tm_init(window,document,trTM.c.tmID,trTM.c.gdl,trTM.c.env);
-      for (var i=0; i<latDL.length; i++) {
+      /*for (var i=0; i<latDL.length; i++) {
         trTM.f.fire(tmpDL[i]);
-      }
+      }*/
       //window[trTM.c.gdl] = window[trTM.c.gdl] || [];
       if (typeof trTM.f.gtm_inject_callback=='function') trTM.f.gtm_inject_callback();
       trTM.f.log('m6', null);
@@ -436,14 +453,14 @@ if (typeof trTM.f.fire!='function') trTM.f.fire = function (o) {
         if (typeof obj[k]!='undefined') {
           if (!trTM.c.consent.consent_event_attr[obj.event][k] || obj[k]==trTM.c.consent.consent_event_attr[obj.event][k]) {
             trTM.f.consent('update');
-            trTM.f.fire({ event:'trTM_consent_update', cmp:JSON.parse(JSON.stringify(trTM.d.consent)), cmp_obj:obj});
+            trTM.f.fire({ event:'trTM_consent_update', cmp:JSON.parse(JSON.stringify(trTM.d.consent)), gtag:false, cmp_obj:obj});
             //return;
           }
         }
       }
     } else {
       trTM.f.consent('update');
-      trTM.f.fire({ event:'trTM_consent_update', cmp:JSON.parse(JSON.stringify(trTM.d.consent)), cmp_obj:obj});
+      trTM.f.fire({ event:'trTM_consent_update', cmp:JSON.parse(JSON.stringify(trTM.d.consent)), gtag:false, cmp_obj:obj});
       //return;
     }
   }
