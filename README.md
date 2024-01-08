@@ -110,8 +110,14 @@ Notice: You need to change the function for the consent check, see below how. Al
    `<script src="/js/trTMcmp/consent_check_consentmanager.js" type="text/javascript"></script>`
    *Notice: Instead including the external script, you could also put the function direct into trTMlib.js and overwrite the function(s) with the same name*
    Available consent tool functions:
+   - Borlabs Cookie: consent_check_borlabs.js
+   - CCM19: consent_check_ccm19.js
    - Consentmanager: consent_check_consentmanager.js
+   - Cookiebot: consent_check_cookiebot.js
+   - Cookie First: consent_check_cookiefirst.js
+   - Klaro: consent_check_klaro.js
    - Sourcepoint: consent_check_sourcepoint.js
+   - Usercentrics: consent_check_usercentrics.js
 
 5. **Start the injection (within the same javascript block from above)**
    ```javascript
@@ -518,6 +524,9 @@ Feel free to contact me if you found problems or improvements:
 
 
 ## Changelog ##
+
+- Version 1.3.4, *06.01.2024*
+  - Minor changes
 
 - Version 1.3.3, *04.01.2024*
   - Preparations for Google Consent Mode 2

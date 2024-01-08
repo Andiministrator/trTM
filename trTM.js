@@ -2,8 +2,8 @@
 
 /**
  * Global implementation script/object for Google GTAG and Tag Manager, depending on the user consent.
- * @version 1.3.3
- * @lastupdate 04.01.2024 by Andi Petzoldt <andi@tracking-garden.com>
+ * @version 1.3.4
+ * @lastupdate 06.01.2024 by Andi Petzoldt <andi@tracking-garden.com>
  * @author Andi Petzoldt <andi@petzoldt.net>
  * @documentation see README.md
  * @usage (with example config)
@@ -15,7 +15,7 @@
 window.trTM = window.trTM || {}; // Tag Manager Global Object
 trTM.c = trTM.c || {}; // TM Configuration Settings Object
 trTM.d = trTM.d || {}; // TM Data Object
-trTM.d.version = '1.3.3'; // trTM Version
+trTM.d.version = '1.3.4'; // trTM Version
 trTM.d.config = trTM.d.config || false; // is TM is configured?
 trTM.d.init = trTM.d.init || false; // is TM Initialisation complete?
 trTM.d.fired = trTM.d.fired || false; // is TM active (was fired)
