@@ -80,6 +80,7 @@ Notice: You need to change the function for the consent check, see below how. Al
      ,gtagVendors: 'Google Inc' // The vendor(s) that must be agreed to in order to activate the GTAG (comma-separated)
      ,gdl: 'dataLayer' // Name of GTM dataLayer
      ,env: '' // Environment string (leave it blank you you don't know, what it is)
+     ,useListener: false, // Use an event listener to check the consent (true). If it is false, a timer will be used (default) to check the consent
      ,consent: {
         hasResponse:false // true (or string) if consent was given, false if consent was not (yet) given (user hasn't interacted with the consent banner)
        ,consent_events: 'cmpEvent,cmpUpdate'; // string with consent events (comma-separated) for updating the consent (leave it blank you you don't know, what it is)
@@ -124,6 +125,17 @@ Notice: You need to change the function for the consent check, see below how. Al
 ## Configuration options ##
 
 There are a lot configuration options. But you need only to use the options, where you want another setting as the default value.
+
+### useListener ###
+Use an event listener to check the consent (true). If it is false, a timer will be used (default) to check the consent.
+You should add the following command to your Consent Event Listener:
+`trTM.f.consent_event_listener();`
+*Make sure, that the trTM lib is loaded before the event listener runs!*
+If you don't know what that means, leave this option to false (default).
+For more information, read the chapter "[Use Event Listeners instead of the default timer](#use-event-listeners-instead-of-the-default-timer)".
+Type: boolean
+Example: `true`
+Default: `false`
 
 ### gtmID ###
 your GTM Container ID - leave it empty if you don't want to use the Google Tag Manager
@@ -228,6 +240,7 @@ Default: `''`
 
 #### consent_events ####
 string with consent events (comma-separated) for updating the consent
+For more Information, read the chapter [Updating Consent Information](#updating-consent-information)
 Type: string
 Example: `'cmpEvent,cmpUpdate'`
 Default: `''`
@@ -276,6 +289,21 @@ Default: `{ status:'denied', purposes:[], services:[], vendors:[] }`
 
 
 ## Consent Handling ##
+
+### Use Event Listeners instead of the default timer ###
+By default, a timer is used to check whether the initial consent information is available. It will check every 100ms, whether the user hase given his consent (or declined it).
+If you have the possibility to use an Event Listener for this, you can set the option "useListener" to true. In this case, no timer will start. But you need to add the following command to your Event Listener function:
+`trTM.f.consent_event_listener();`
+This command should run after the user has initial decided for consent.
+*Don't use it for consent update - read therefor the next point).*
+
+### Updating Consent Information ###
+There are two options to update existing consent information (e.g. if the user accept the consent in the first step but declines it later on).
+The **first option** is to send an event with a special name to the dataLayer. You can configure the event name(s) with the config option "consent.consent_events". If you have more than one event name, you can configure more event names (comma-separated).
+If an event comes into the dataLayer with one of the configured event names, the consent will be re-checked and updated.
+The **second option** is to run the update function through an event listener. Add the following command to the Event Listener for updating the consent info:
+`trTM.f.consent('update')`
+*Don't use this command for the initial check of the consent. Read therefore the point above.*
 
 ### See consented Purposes and Vendors ###
 You can check, which purposes and vendors have consent by the following command (enter it in the browser console):
@@ -466,7 +494,10 @@ Feel free to contact me if you found problems or improvements:
 
 ## Changelog ##
 
-- Version 1.3.1, *19.12.2023*
+- Version 1.3.2, *22.12.2023*
+  - Make trTM ready to use it with Consent Event Listeners
+
+- Version 1.3.1, *21.12.2023*
   - Problems solved with missing Pageviews and double events
 
 - Version 1.3, *10.12.2023*

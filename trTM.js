@@ -2,8 +2,8 @@
 
 /**
  * Global implementation script/object for Google GTAG and Tag Manager, depending on the user consent.
- * @version 1.3.1, Netdoktor Version
- * @lastupdate 19.12.2023 by Andi Petzoldt <andi@tracking-garden.com>
+ * @version 1.3.2, Netdoktor Version
+ * @lastupdate 22.12.2023 by Andi Petzoldt <andi@tracking-garden.com>
  * @author Andi Petzoldt <andi@petzoldt.net>
  * @documentation see README_Netdoktor_Implementation.md or README_trTM.md for general information about trTM
  * @usage (with example config)
@@ -15,7 +15,7 @@
 window.trTM = window.trTM || {}; // Tag Manager Global Object
 trTM.c = trTM.c || {}; // TM Configuration Settings Object
 trTM.d = trTM.d || {}; // TM Data Object
-trTM.d.version = '1.3.1'; // trTM Version
+trTM.d.version = '1.3.2'; // trTM Version
 trTM.d.config = trTM.d.config || false; // is TM is configured?
 trTM.d.init = trTM.d.init || false; // is TM Initialisation complete?
 trTM.d.fired = trTM.d.fired || false; // is TM active (was fired)
@@ -54,11 +54,12 @@ if (typeof trTM.f.config!='function') trTM.f.config = function (cfg) {
     return;
   }
   // Set the Config
+  trTM.c.useListener = cfg.useListener || false; // Use an event listener to check the consent (true). If it is false, a timer will be used (default) to check the consent
   trTM.c.gtmID = cfg.gtmID || ''; // your GTM Container ID - leave it empty if you don't want to the Google Tag Manager
   trTM.c.gtmPurposes = cfg.gtmPurposes || ''; // The purpose(s) that must be agreed to in order to activate the GTM (comma-separated), e.g. 'Functional'
   trTM.c.gtmServices = cfg.gtmServices || ''; // The services(s) that must be agreed to in order to activate the GTM (comma-separated), e.g. 'Google Tag Manager'
   trTM.c.gtmVendors = cfg.gtmVendors || ''; // The vendors(s) that must be agreed to in order to activate the GTM (comma-separated), e.g. 'Google Inc'
-  trTM.c.tmID = trTM.c.gtmID ? trTM.c.gtmID.substring(4) : '';
+  trTM.c.tmID = trTM.c.gtmID ? trTM.c.gtmID.substring(4) : ''; // Google Tag Manager Container ID shortened
   trTM.c.gdl = cfg.gdl || 'dataLayer'; // Name of GTM dataLayer | Default:'dataLayer'
   trTM.c.env = cfg.env || ''; // Environment string (leave it blank you you don't know, what it is)
   trTM.c.gtag = cfg.gtag || null; // GTAG(s) with config - set it to null if you don't want to use GTAG functionallity, example: cfg.gtag = { 'G-xxx': { debug_mode:true, send_page_view:false } };
@@ -300,13 +301,21 @@ if (typeof trTM.f.consent_timer_listener!='function') trTM.f.consent_timer_liste
 };
 
 /**
+ * Function to check whether consent is available, trough an event listener function
+ * @property {function} trTM.f.consent_listener
+ * Usage: trTM.f.consent_event_listener();
+ */
+if (typeof trTM.f.consent_event_listener!='function') trTM.f.consent_event_listener = function () {
+  if (!trTM.f.consent_fct()) { trTM.d.timer = setInterval(trTM.f.consent_timer_listener, 100); }
+};
+
+/**
  * Function to check whether consent is available, either with an event listener or periodically
  * @property {function} trTM.f.consent_listener
  * Usage: trTM.f.consent_listener();
  */
 if (typeof trTM.f.consent_listener!='function') trTM.f.consent_listener = function () {
-  if (typeof trTM.f.consent_event_listener=='function') { trTM.f.consent_event_listener(); }
-  else { trTM.d.timer = setInterval(trTM.f.consent_timer_listener, 100); }
+  if (!trTM.c.useListener) trTM.d.timer = setInterval(trTM.f.consent_timer_listener, 100);
 };
 
 /**
