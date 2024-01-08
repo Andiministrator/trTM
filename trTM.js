@@ -2,10 +2,10 @@
 
 /**
  * Global implementation script/object for Google GTAG and Tag Manager, depending on the user consent.
- * @version 1.3.2, Netdoktor Version
- * @lastupdate 22.12.2023 by Andi Petzoldt <andi@tracking-garden.com>
+ * @version 1.3.3
+ * @lastupdate 04.01.2024 by Andi Petzoldt <andi@tracking-garden.com>
  * @author Andi Petzoldt <andi@petzoldt.net>
- * @documentation see README_Netdoktor_Implementation.md or README_trTM.md for general information about trTM
+ * @documentation see README.md
  * @usage (with example config)
  *   trTM.f.config({ env:'&gtm_auth=ABC123xyz&gtm_preview=env-1&gtm_cookies_win=x', gtmID:'GTM-XYZ123' });
  *   trTM.f.tm_inject();
@@ -15,7 +15,7 @@
 window.trTM = window.trTM || {}; // Tag Manager Global Object
 trTM.c = trTM.c || {}; // TM Configuration Settings Object
 trTM.d = trTM.d || {}; // TM Data Object
-trTM.d.version = '1.3.2'; // trTM Version
+trTM.d.version = '1.3.3'; // trTM Version
 trTM.d.config = trTM.d.config || false; // is TM is configured?
 trTM.d.init = trTM.d.init || false; // is TM Initialisation complete?
 trTM.d.fired = trTM.d.fired || false; // is TM active (was fired)
@@ -95,7 +95,7 @@ if (typeof trTM.f.config!='function') trTM.f.config = function (cfg) {
   }
   trTM.c.consent.consent_id = trTM.c.consent.consent_id || ''; // ID of the current CMP User to request consent info
   trTM.c.consent.gtagmap = trTM.c.consent.gtagmap || {}; // Mapping for GTAG/GTM integrated Consent Functions - set it to {} if is not needed
-  //var a = ['ad_storage','analytics_storage','functionality_storage','personalization_storage','security_storage'];
+  //var a = ['ad_storage','analytics_storage','functionality_storage','personalization_storage','security_storage','ad_user_data','ad_personalization'];
   for (k in trTM.c.consent.gtagmap) {
     trTM.c.consent.gtagmap[k] = typeof trTM.c.consent.gtagmap[k]=='object' ? trTM.c.consent.gtagmap[k] : {};
     trTM.c.consent.gtagmap[k].status = trTM.c.consent.gtagmap[k].status || 'denied';
@@ -143,11 +143,7 @@ trTM.f.evLstn = trTM.f.evLstn || function(el, ev, ft) {
 
 /**
  * Function to check, whether the user consent info/choice exists and for what purposes and vendors
- * @usage use it together with trTMlib and see the documentation there
- * @type: Sourcepoint
- * @version 1.1
- * @lastupdate 03.12.2023 by Andi Petzoldt <andi@petzoldt.net>
- * @author Andi Petzoldt <andi@petzoldt.net>
+ * @type: No consent tool, this is the fallback function
  * @property {function} trTM.f.consent_check
  * @param {string} action - the action, what the function should do. can be "init" (for the first consent check) or "update" (for updating existing consent info)
  * @returns {boolean} - true, if consent is available, false if not

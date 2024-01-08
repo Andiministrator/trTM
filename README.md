@@ -33,7 +33,7 @@ In any case, with the GTM setup you no longer have to worry about whether and wh
 ### Even more information ###
 Feel free to use or change the code. If you have suggestions for improvement, please write to me.
 **Licence:** MIT License
-**Repository:** [Github trTMlib Repository](https://github.com/Andiministrator/trTMlib)
+**Repository:** [Github trTMlib Repository](https://github.com/Andiministrator/trTM)
 
 
 ## Usage ##
@@ -92,11 +92,14 @@ Notice: You need to change the function for the consent check, see below how. Al
        ,cm:true // use the (Gtag) Consent Mode Function
        ,gtagmap:{ // Mapping for GTAG/GTM integrated Consent Functions - set it to NULL if is not needed
           ad_storage: { status:'denied', purposes:['marketing'], services:['Google Ads'], vendors:['Google Inc'] } // Enables storage, such as cookies, related to advertising
+         ,ad_user_data: { status:'granted', purposes:['necessary'], services:[], vendors:[] } // Sets consent for sending user data to Google for advertising purposes
          ,analytics_storage: { status:'denied', purposes:['analytics'], services:['Google Analytics'], vendors:['Google Inc'] } // Enables storage, such as cookies, related to analytics (for example, visit duration)
+         ,ad_personalization: { status:'granted', purposes:['necessary'], services:[], vendors:[] } // Sets consent for personalized advertising.
+                                                                                                    // Note: Disabling personalized advertising using [allow_ad_personalization_signals](https://support.google.com/google-ads/answer/9606827?sjid=10512473389493160849-EU), yields the same results as using ad_personalization. If you set both parameters with conflicting values, personalization is disabled. To honor user choices, implement ad_personalization.
          ,analytics_audiences: { status:'denied', purposes:['personalization'], services:['Google Analytics'], vendors:['Google Inc'] } // Enables storage, such as cookies, related to analytics (for example, visit duration)
-         ,functionality_storage: { status:'denied', purposes:['functional'], services:[], vendors:[] } // Enables storage that supports the functionality of the website or app such as language settings
          ,personalization_storage: { status:'denied', purposes:['marketing'], services:[], vendors:['Google Ads'] } // Enables storage related to personalization such as video recommendations
-         ,security_storage: { status:'granted', purposes:['necessary'], services:[], vendors:[] } // Enables storage related to security such as authentication functionality, fraud prevention, and other user protection 
+         ,functionality_storage: { status:'denied', purposes:['functional'], services:[], vendors:[] } // Enables storage that supports the functionality of the website or app such as language settings
+         ,security_storage: { status:'granted', purposes:['necessary'], services:[], vendors:[] } // Enables storage related to security such as authentication functionality, fraud prevention, and other user protection
        }
      }
    });
@@ -210,7 +213,9 @@ Example:
   ,cm:true
   ,gtagmap:{
      ad_storage: { status:'denied', purposes:['marketing'], services:['Google Ads'], vendors:['Google Inc'] }
+    ,ad_user_data: { status:'denied', purposes:['necessary'], services:[], vendors:[] }
     ,analytics_storage: { status:'denied', purposes:['statistics'], services:['Google Analytics'], vendors:['Google Inc'] }
+    ,ad_personalization: { status:'denied', purposes:['necessary'], services:[], vendors:[] }
     ,personalization_storage: { status:'denied', purposes:['personalization'], services:[], vendors:[] }
     ,functionality_storage: { status:'denied', purposes:['functional'], services:[], vendors:[] }
     ,security_storage: { status:'denied', purposes:['necessary'], services:[], vendors:[] }
@@ -263,22 +268,35 @@ Type: object
 Example: `{ status:'denied', purposes:['marketing'], services:['Google Ads'], vendors:['Google Inc'] }`
 Default: `{ status:'denied', purposes:[], services:[], vendors:[] }`
 
+##### ad_user_data #####
+Sets consent for sending user data to Google for advertising purposes
+Type: object
+Example: `{ status:'denied', purposes:['necessary'], vendors:['My Company'] }`
+Default: `{ status:'denied', purposes:[], services:[], vendors:[] }`
+
 ##### analytics_storage #####
 Enables storage, such as cookies, related to analytics (for example, visit duration)
 Type: object
 Example: `{ status:'denied', purposes:['statistics'], services:['Google Analytics'], vendors:['My Company'] }`
 Default: `{ status:'denied', purposes:[], services:[], vendors:[] }`
 
-##### functionality_storage #####
-Enables storage that supports the functionality of the website or app such as language settings
+##### ad_personalization #####
+Sets consent for personalized advertising.
+**Note:** Disabling personalized advertising using [allow_ad_personalization_signals](https://support.google.com/google-ads/answer/9606827?sjid=10512473389493160849-EU), yields the same results as using ad_personalization. If you set both parameters with conflicting values, personalization is disabled. To honor user choices, implement ad_personalization.
 Type: object
-Example: `{ status:'denied', purposes:['functional'], vendors:['My Company'] }`
+Example: `{ status:'denied', purposes:['necessary'], vendors:['My Company'] }`
 Default: `{ status:'denied', purposes:[], services:[], vendors:[] }`
 
 ##### personalization_storage #####
 Enables storage related to personalization such as video recommendations
 Type: object
 Example: `{ status:'denied', purposes:['personalization'], vendors:['My Company'] }`
+Default: `{ status:'denied', purposes:[], services:[], vendors:[] }`
+
+##### functionality_storage #####
+Enables storage that supports the functionality of the website or app such as language settings
+Type: object
+Example: `{ status:'denied', purposes:['functional'], vendors:['My Company'] }`
 Default: `{ status:'denied', purposes:[], services:[], vendors:[] }`
 
 ##### security_storage #####
@@ -346,17 +364,22 @@ With the gtagmap, you can send consent info to the Google Tag Manager for using 
 You can find documentation on the topic here:
 - [General Information for the Google Consent Mode](https://support.google.com/analytics/answer/9976101?hl=en)
 - [Some more technical Documentation for GTM](https://developers.google.com/tag-platform/security/guides/consent?hl=en#tag-manager]
-- [Some more technical Documentation for GTAG](https://developers.google.com/tag-platform/security/guides/consent?hl=en#gtag.js_1]
+- [Some more technical Documentation for GTAG](https://developers.google.com/tag-platform/security/guides/consent?hl=en#gtag.js_1)
 - [GTM Docu for Consent Mode](https://support.google.com/tagmanager/answer/10718549?hl=en)
 According to the documentation there are 5 documented Consent Type (Names):
 - **ad_storage**
   Enables storage (such as cookies) related to advertising
+- **ad_user_data**
+  Sets consent for sending user data to Google for advertising purposes
 - **analytics_storage**
   Enables storage (such as cookies) related to analytics e.g. visit duration
-- **functionality_storage**
-  Enables storage that supports the functionality of the website or app e.g. language settings
+- **ad_personalization**
+  Sets consent for personalized advertising.
+  **Note:** Disabling personalized advertising using [allow_ad_personalization_signals](https://support.google.com/google-ads/answer/9606827?sjid=10512473389493160849-EU), yields the same results as using ad_personalization. If you set both parameters with conflicting values, personalization is disabled. To honor user choices, implement ad_personalization.
 - **personalization_storage**
   Enables storage related to personalization e.g. video recommendations
+- **functionality_storage**
+  Enables storage that supports the functionality of the website or app e.g. language settings
 - **security_storage**
   Enables storage related to security such as authentication functionality, fraud prevention, and other user protection
 But you can use what ever you want as Consent Type (Name).
@@ -391,8 +414,10 @@ You can leave the status parameter out, if it is denied (because it is denied by
 Here an example of the gtagmap:
 ```javascript
 gtagmap:{
-   ad_storage: { status:'denied', purposes:['Marketing','Personalization'], services:['Google Ads'], vendors:['Google'] }
+   ad_storage: { status:'denied', purposes:['Marketing'], services:['Google Ads'], vendors:['Google'] }
+  ,ad_user_data: { status:'denied', purposes:['Marketing'], services:['Google Ads'] }
   ,analytics_storage: { status:'denied', purposes:['Statistics'], services:['Google Analytics'], vendors:['Google'] }
+  ,ad_personalization: { status:'denied', purposes:['Marketing','Personalization'], services:['Google Analytics'] }
   ,functionality_storage: { status:'granted' }
 }
 ```
@@ -493,6 +518,9 @@ Feel free to contact me if you found problems or improvements:
 
 
 ## Changelog ##
+
+- Version 1.3.3, *04.01.2024*
+  - Preparations for Google Consent Mode 2
 
 - Version 1.3.2, *22.12.2023*
   - Make trTM ready to use it with Consent Event Listeners
