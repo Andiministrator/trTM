@@ -2,8 +2,8 @@
 
 /**
  * Global implementation script/object for Google GTAG and Tag Manager, depending on the user consent.
- * @version 1.3.4
- * @lastupdate 06.01.2024 by Andi Petzoldt <andi@tracking-garden.com>
+ * @version 1.3.5
+ * @lastupdate 07.01.2024 by Andi Petzoldt <andi@tracking-garden.com>
  * @author Andi Petzoldt <andi@petzoldt.net>
  * @documentation see README.md
  * @usage (with example config)
@@ -15,7 +15,7 @@
 window.trTM = window.trTM || {}; // Tag Manager Global Object
 trTM.c = trTM.c || {}; // TM Configuration Settings Object
 trTM.d = trTM.d || {}; // TM Data Object
-trTM.d.version = '1.3.4'; // trTM Version
+trTM.d.version = '1.3.5'; // trTM Version
 trTM.d.config = trTM.d.config || false; // is TM is configured?
 trTM.d.init = trTM.d.init || false; // is TM Initialisation complete?
 trTM.d.fired = trTM.d.fired || false; // is TM active (was fired)
@@ -153,19 +153,19 @@ trTM.f.consent_check = trTM.f.consent_check || function (action) {
   if (!trTM.d.config) { trTM.f.log('e2', null); return false; }
   if (typeof action!='string' || (action!='init'&&action!='update')) { trTM.f.log('e3', {action:action}); return false; }
   // Check whether response was already given
-  if (action=='init' && o.hasResponse) return true;
-  // Build temp object
-  var o = {};
+  trTM.d.consent = trTM.d.consent || {};
+  if (action=='init' && trTM.d.consent.hasResponse) return true;
   // Get Consent
-  o.purposes = typeof trTM.c.purposes=='string' ? ','+trTM.c.purposes+',' : '';
-  o.services = typeof trTM.c.services=='string' ? ','+trTM.c.services+',' : '';
-  o.vendors = typeof trTM.c.vendors=='string' ? ','+trTM.c.vendors+',' : '';
-  // Set Response and Feedback
-  o.hasResponse = true;
-  o.feedback = 'no valid check fct given, cfg used';
-  // Return
-  trTM.d.consent = o;
-  trTM.f.log('m2', o);
+  var purposes = typeof trTM.c.purposes=='string' ? ','+trTM.c.purposes+',' : '';
+  var services = typeof trTM.c.services=='string' ? ','+trTM.c.services+',' : '';
+  var vendors = typeof trTM.c.vendors=='string' ? ','+trTM.c.vendors+',' : '';
+  // Set Response and Feedback and Return
+  trTM.d.consent.purposes = purposes;
+  trTM.d.consent.services = services;
+  trTM.d.consent.vendors = vendors;
+  trTM.d.consent.feedback = 'no valid check fct given, cfg used';
+  trTM.d.consent.hasResponse = true;
+  trTM.f.log('m2', JSON.parse(JSON.stringify(trTM.d.consent)));
   return true;
 };
 

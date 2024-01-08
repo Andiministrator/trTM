@@ -525,6 +525,9 @@ Feel free to contact me if you found problems or improvements:
 
 ## Changelog ##
 
+- Version 1.3.5, *07.01.2024*
+  - Bug in Consent Check functions (and default consent_check) fixed for gtag arguments
+
 - Version 1.3.4, *06.01.2024*
   - Minor changes
 

@@ -10,8 +10,8 @@ trTM.l = trTM.l || [];
  * Function to check, whether the user consent info/choice exists and for what purposes and vendors
  * @usage use it together with trTMlib and see the documentation there
  * @type: Consentmanager
- * @version 1.0
- * @lastupdate 25.11.2023 by Andi Petzoldt <andi@petzoldt.net>
+ * @version 1.1
+ * @lastupdate 07.01.2024 by Andi Petzoldt <andi@petzoldt.net>
  * @author Andi Petzoldt <andi@petzoldt.net>
  * @property {function} trTM.f.consent_check
  * @param {string} action - the action, what the function should do. can be "init" (for the first consent check) or "update" (for updating existing consent info)
@@ -20,9 +20,9 @@ trTM.l = trTM.l || [];
  */
 trTM.f.consent_check = function (action) {
   if (typeof action!='string' || (action!='init'&&action!='update')) { if (typeof trTM.f.log=='function') trTM.f.log('e10', {action:action}); return false; }
-  var o = { hasResponse:false, feedback:'' };
   // Check whether response was already given
-  if (action=='init' && o.hasResponse) return true;
+  trTM.d.consent = trTM.d.consent || {};
+  if (action=='init' && trTM.d.consent.hasResponse) return true;
   // Check ConsentManager object and status and get Vendor (Service) Infos
   if (typeof __cmp != 'function') return false;
   var c = __cmp('getCMPData'); if (typeof c!='object') return false;
@@ -45,8 +45,6 @@ trTM.f.consent_check = function (action) {
       purposes.push(c.purposesList[i].name);
     }
   }
-  o.purposes = ',' + purposes.join(',') + ',';
-  o.purposeIDs = ',' + purposeIDs.join(',') + ',';
   // Get Vendors
   var vendors = trTM.c.vendors ? trTM.c.vendors.split(',') : [];
   var vendorIDs = [];
@@ -60,21 +58,24 @@ trTM.f.consent_check = function (action) {
       vendors.push(c.vendorsList[i].name);
     }
   }
-  o.vendors = ',' + vendors.join(',') + ',';
-  o.vendorIDs = ',' + vendorIDs.join(',') + ',';
+  // Set Purposes and Vendors to object
+  trTM.d.consent.purposes = ',' + purposes.join(',') + ',';
+  trTM.d.consent.purposeIDs = ',' + purposeIDs.join(',') + ',';
+  trTM.d.consent.vendors = ',' + vendors.join(',') + ',';
+  trTM.d.consent.vendorIDs = ',' + vendorIDs.join(',') + ',';
   // Build feedback
-  o.feedback = 'Consent available';
-  if (vendorCtr==vendorLIctr && purposeCtr==purposeLIctr) { o.feedback = 'All consent is essential - no user choice'; }
-  else if (vendors.length<=vendorLIctr && purposes.length<=purposeLIctr) { o.feedback = 'Consent declined'; }
-  else if (vendors.length==vendorCtr && purposes.length==purposeCtr) { o.feedback = 'Consent full accepted'; }
-  else if (vendors.length>vendorLIctr || purposes.length>purposeLIctr) { o.feedback = 'Consent partially accepted'; }
+  var feedback = 'Consent available';
+  if (vendorCtr==vendorLIctr && purposeCtr==purposeLIctr) { feedback = 'All consent is essential - no user choice'; }
+  else if (vendors.length<=vendorLIctr && purposes.length<=purposeLIctr) { feedback = 'Consent declined'; }
+  else if (vendors.length==vendorCtr && purposes.length==purposeCtr) { feedback = 'Consent full accepted'; }
+  else if (vendors.length>vendorLIctr || purposes.length>purposeLIctr) { feedback = 'Consent partially accepted'; }
+  trTM.d.consent.feedback = feedback;
   // Get Consent ID
-  if (typeof c.consentstring=='string') o.consent_id = c.consentstring;
+  if (typeof c.consentstring=='string') trTM.d.consent.consent_id = c.consentstring;
   // Set Response
-  o.hasResponse = true;
+  trTM.d.consent.hasResponse = true;
   // Callback and Return
-  trTM.d.consent = o;
-  if (typeof trTM.f.log=='function') trTM.f.log('m2', o);
+  if (typeof trTM.f.log=='function') trTM.f.log('m2', JSON.parse(JSON.stringify(trTM.d.consent)));
   return true;
 };
 

@@ -10,8 +10,8 @@ trTM.l = trTM.l || [];
  * Function to check, whether the user consent info/choice exists and for what purposes and vendors
  * @usage use it together with trTMlib and see the documentation there
  * @type: Sourcepoint
- * @version 1.1
- * @lastupdate 03.12.2023 by Andi Petzoldt <andi@petzoldt.net>
+ * @version 1.2
+ * @lastupdate 07.01.2024 by Andi Petzoldt <andi@petzoldt.net>
  * @author Andi Petzoldt <andi@petzoldt.net>
  * @property {function} trTM.f.consent_check
  * @param {string} action - the action, what the function should do. can be "init" (for the first consent check) or "update" (for updating existing consent info)
@@ -20,9 +20,9 @@ trTM.l = trTM.l || [];
  */
 trTM.f.consent_check = function (action) {
   if (typeof action!='string' || (action!='init'&&action!='update')) { if (typeof trTM.f.log=='function') trTM.f.log('e10', {action:action}); return false; }
-  var o = { hasResponse:false, feedback:'' };
   // Check whether response was already given
-  if (action=='init' && o.hasResponse) return true;
+  trTM.d.consent = trTM.d.consent || {};
+  if (action=='init' && trTM.d.consent.hasResponse) return true;
   // get TCF API object
   if (typeof __tcfapi!='function') return false;
   var success=false;

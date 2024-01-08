@@ -9,9 +9,9 @@ trTM.l = trTM.l || [];
 /**
  * Function to check, whether the user consent info/choice exists and for what purposes and vendors
  * @usage use it together with trTMlib and see the documentation there
- * @type: CookieBot
- * @version 1.0
- * @lastupdate 05.12.2023 by Hartmut Clas <hartmut@tracking-garden.com>
+ * @type: CCM 19
+ * @version 1.1
+ * @lastupdate 07.01.2024 by Andi Petzoldt <andi@petzoldt.net>
  * @author Hartmut Clas <hartmut@tracking-garden.com>
  * @property {function} trTM.f.consent_check
  * @param {string} action - the action, what the function should do. can be "init" (for the first consent check) or "update" (for updating existing consent info)
@@ -20,16 +20,15 @@ trTM.l = trTM.l || [];
  */
 trTM.f.consent_check = function (action) {
   if (typeof action!='string' || (action!='init'&&action!='update')) { if (typeof trTM.f.log=='function') trTM.f.log('e10', {action:action}); return false; }
-  var o = { hasResponse:false, feedback:'' };
   // Check whether response was already given
-  if (action=='init' && o.hasResponse) return true;
+  trTM.d.consent = trTM.d.consent || {};
+  if (action=='init' && trTM.d.consent.hasResponse) return true;
   // Check CCM19 instance
   if (typeof CCM!='object' || typeof CCM.consent!='boolean') return false;
   var ccm19 = CCM;
-  if (typeof ccm19.acceptedEmbeddings !='object') return false;
+  if (typeof ccm19.acceptedEmbeddings!='object') return false;
   // Check whether user consent is available
   if (!ccm19.consent && ccm19.consentRequired) return false;
-
   // Get Services Consent data
   var services = [];
   var ccm19Services = ccm19 != null && typeof ccm19.acceptedEmbeddings == 'object' && ccm19.acceptedEmbeddings != null ? ccm19.acceptedEmbeddings : {};
@@ -40,20 +39,18 @@ trTM.f.consent_check = function (action) {
   // Sort Service Array and stringify it
   if (services.length>0) {
     services.sort();
-    o.services = ',' + services.join(',') + ',';
+    trTM.d.consent.services = ',' + services.join(',') + ',';
   }
   // Build feedback
-  o.feedback = 'Consent available';
-  // Get some more info about how consent was given, if available
-  if (typeof ccm19.fullConsentGiven == boolean && ccm19.fullConsentGiven===true) { o.feedback = 'Consent full accepted'; }
-  else { o.feedback = 'Consent (partially or full) declined'; }
+  var feedback = 'Consent available';
+  if (typeof ccm19.fullConsentGiven == boolean && ccm19.fullConsentGiven===true) { feedback = 'Consent full accepted'; }
+  else { feedback = 'Consent (partially or full) declined'; }
+  trTM.d.consent.feedback = feedback;
   // Get Consent ID
-  if (typeof ccm19.ucid=='string') o.consent_id = ccm19.ucid;
-  // Set Response
-  o.hasResponse = true;
-  // Callback and Return
-  trTM.d.consent = o;
-  if (typeof trTM.f.log=='function') trTM.f.log('m2', o);
+  if (typeof ccm19.ucid=='string') trTM.d.consent.consent_id = ccm19.ucid;
+  // Set Response, Callback and Return
+  trTM.d.consent.hasResponse = true;
+  if (typeof trTM.f.log=='function') trTM.f.log('m2', JSON.parse(JSON.stringify(trTM.d.consent)));
   return true;
 };
 

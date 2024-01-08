@@ -10,8 +10,8 @@ trTM.l = trTM.l || [];
  * Function to check, whether the user consent info/choice exists and for what purposes and vendors
  * @usage use it together with trTMlib and see the documentation there
  * @type: Klaro
- * @version 1.0
- * @lastupdate 02.12.2023 by Andi Petzoldt <andi@petzoldt.net>
+ * @version 1.1
+ * @lastupdate 07.01.2024 by Andi Petzoldt <andi@petzoldt.net>
  * @author Andi Petzoldt <andi@petzoldt.net>
  * @property {function} trTM.f.consent_check
  * @param {string} action - the action, what the function should do. can be "init" (for the first consent check) or "update" (for updating existing consent info)
@@ -20,9 +20,9 @@ trTM.l = trTM.l || [];
  */
 trTM.f.consent_check = function (action) {
   if (typeof action!='string' || (action!='init'&&action!='update')) { if (typeof trTM.f.log=='function') trTM.f.log('e10', {action:action}); return false; }
-  var o = { hasResponse:false, feedback:'' };
   // Check whether response was already given
-  if (action=='init' && o.hasResponse) return true;
+  trTM.d.consent = trTM.d.consent || {};
+  if (action=='init' && trTM.d.consent.hasResponse) return true;
   // Check and get Klaro object
   if (typeof klaro!='object' || typeof klaro.getManager!='function') return false;
   var kl = klaro.getManager();
@@ -66,25 +66,22 @@ trTM.f.consent_check = function (action) {
     serviceCtr++;
     if (typeof kl.consents[s]=='boolean' && kl.consents[s]) services.push(s);
   }
-
-
   // Add purposes to object
-  o.purposes = purposes.length>0 ? ','+purposes.join(',')+',' : '';
+  trTM.d.consent.purposes = purposes.length>0 ? ','+purposes.join(',')+',' : '';
   // Add purposes to object
-  o.services = services.length>0 ? ','+services.join(',')+',' : '';
+  trTM.d.consent.services = services.length>0 ? ','+services.join(',')+',' : '';
   // Build Feedback
-  o.feedback = 'Consent available';
-  if (serviceCtr==0) { o.feedback = 'No services available'; }
-  else if (services.length==0 && serviceCtr>0) { o.feedback = 'Consent declined'; }
-  else if (services.length==serviceCtr) { o.feedback = 'Consent full accepted'; }
-  else if (services.length>0 && services.length<serviceCtr) { o.feedback = 'Consent partially accepted'; }
+  var feedback = 'Consent available';
+  if (serviceCtr==0) { feedback = 'No services available'; }
+  else if (services.length==0 && serviceCtr>0) { feedback = 'Consent declined'; }
+  else if (services.length==serviceCtr) { feedback = 'Consent full accepted'; }
+  else if (services.length>0 && services.length<serviceCtr) { feedback = 'Consent partially accepted'; }
+  trTM.d.consent.feedback = feedback;
   // Get Consent ID
-  //if (typeof kl.consentID=='string') o.consent_id = cb.consentID;
-  // Set Response
-  o.hasResponse = true;
-  // Callback and Return
-  trTM.d.consent = o;
-  if (typeof trTM.f.log=='function') trTM.f.log('m2', o);
+  //if (typeof kl.consentID=='string') trTM.d.consent.consent_id = cb.consentID;
+  // Set Response, run Callback and Return
+  trTM.d.consent.hasResponse = true;
+  if (typeof trTM.f.log=='function') trTM.f.log('m2', JSON.parse(JSON.stringify(trTM.d.consent)));
   return true;
 };
 

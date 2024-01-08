@@ -1,5 +1,5 @@
 # consent_check_ccm19.js - Library item for CMP ccm19
-*consent_check_ccm19.js 1.0 | Last update to this document: 06.12.2023*
+*consent_check_ccm19.js 1.1 | Last update to this document: 07.01.2024*
 
 ## What is it for? - General Information
 
