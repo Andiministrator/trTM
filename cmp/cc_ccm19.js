@@ -43,7 +43,7 @@ trTM.f.consent_check = function (action) {
   }
   // Build feedback
   var feedback = 'Consent available';
-  if (typeof ccm19.fullConsentGiven == boolean && ccm19.fullConsentGiven===true) { feedback = 'Consent full accepted'; }
+  if (typeof ccm19.fullConsentGiven=='boolean' && ccm19.fullConsentGiven===true) { feedback = 'Consent full accepted'; }
   else { feedback = 'Consent (partially or full) declined'; }
   trTM.d.consent.feedback = feedback;
   // Get Consent ID

@@ -36,7 +36,7 @@
 window.trTM = window.trTM || {}; // Tag Manager Global Object
 trTM.c = trTM.c || {}; // TM Configuration Settings Object
 trTM.d = trTM.d || {}; // TM Data Object
-trTM.d.version = '1.3.5'; // trTM Version
+trTM.d.version = '1.4'; // trTM Version
 trTM.d.config = trTM.d.config || false; // is TM is configured?
 trTM.d.init = trTM.d.init || false; // is TM Initialisation complete?
 trTM.d.fired = trTM.d.fired || false; // is TM active (was fired)
@@ -87,14 +87,22 @@ if (typeof trTM.f.config!='function') trTM.f.config = function (cfg) {
     return;
   }
   // Set the Config
+  trTM.c.debug = cfg.debug || false; // If this is true, the optout cookie will be ignored
+  trTM.c.path = cfg.path || ''; // (relative) path to the directory where trTM is located, e.g. '/js/''
+  trTM.c.cmp = cfg.cmp || ''; // Type of Consent Tool (Cookie Banner) you use in lower case, e.g. 'cookiebot'. See README.md for possible options.
+  if (typeof trTM.c.min!='boolean') trTM.c.min = true; // inject the files as minified versions
+  trTM.c.nonce = cfg.nonce || ''; // Nonce value for the file injections
   trTM.c.useListener = cfg.useListener || false; // Use an event listener to check the consent (true). If it is false, a timer will be used (default) to check the consent
   trTM.c.gtmID = cfg.gtmID || ''; // your GTM Container ID - leave it empty if you don't want to the Google Tag Manager
+  trTM.c.gtmURL = cfg.gtmURL || ''; // If you use an own url to the GTM (e.g. using the serverside Google Tag Manager), you can set your URL here. Leave it blank if you don't know what this means.
+  trTM.c.gtmJS = cfg.gtmJS || ''; // Possibility to give the GTM JS direct as Javascript content. In this case, no external JS script will be loaded.
   trTM.c.gtmPurposes = cfg.gtmPurposes || ''; // The purpose(s) that must be agreed to in order to activate the GTM (comma-separated), e.g. 'Functional'
   trTM.c.gtmServices = cfg.gtmServices || ''; // The services(s) that must be agreed to in order to activate the GTM (comma-separated), e.g. 'Google Tag Manager'
   trTM.c.gtmVendors = cfg.gtmVendors || ''; // The vendors(s) that must be agreed to in order to activate the GTM (comma-separated), e.g. 'Google Inc'
   trTM.c.tmID = trTM.c.gtmID ? trTM.c.gtmID.substring(4) : ''; // Google Tag Manager Container ID shortened
   trTM.c.gdl = cfg.gdl || 'dataLayer'; // Name of GTM dataLayer | Default:'dataLayer'
   trTM.c.env = cfg.env || ''; // Environment string (leave it blank you you don't know, what it is)
+  if (typeof trTM.c.dlStateEvents!='boolean') trTM.c.dlStateEvents = true; // Fire GTM dataLayer Events for DOMloaded and PAGEready
   trTM.c.gtag = cfg.gtag || null; // GTAG(s) with config - set it to null if you don't want to use GTAG functionallity, example: cfg.gtag = { 'G-xxx': { debug_mode:true, send_page_view:false } };
   trTM.c.gtagPurposes = cfg.gtagPurposes || ''; // The purpose(s) that must be agreed to in order to activate the GTAG (comma-separated), e.g. 'Marketing'
   trTM.c.gtagServices = cfg.gtagServices || ''; // The services(s) that must be agreed to in order to activate the GTAG (comma-separated), e.g. 'Google Analytics'
@@ -159,6 +167,24 @@ if (typeof trTM.f.gtag!='function') trTM.f.gtag = function () {
 window.gtag = window.gtag || trTM.f.gtag;
 
 /**
+ * Function to gets the value of a C.
+ * @property {function} trTM.f.gc
+ * @param {string} cname - name of the C.
+ * @returns {string|number|boolean|object} - value of C. (null if C. not exists)
+ * Usage: trTM.f.gc('consent');
+ */
+trTM.f.gc = trTM.f.gc || function (cname) {
+  var re = new RegExp(cname + "=([^;]+)");
+  try {
+    var d = document;
+    var c = 'co' + /* ec */ 'o' + 'kie';
+    var value = re.exec(d[c]);
+  } catch (e) {}
+  if (typeof value!='object' || !value || value.length<2) return null;
+  return decodeURI(value[1]);
+};
+
+/**
  * Function for adding an Event Listener
  * @property {function} trTM.f.evLstn
  * @param {object} el - the dom object where you want to add the event listener, you should catch it e.g. with document.querySelector('div.CLASSNAME')
@@ -182,24 +208,14 @@ trTM.f.evLstn = trTM.f.evLstn || function(el, ev, ft) {
  * Usage: trTM.f.load_cc('cookiebot');
  */
 trTM.f.load_cc = trTM.f.load_cc || function (cmp, callback) {
-  cmp = trTM.f.strclean(cmp);
-  var scr = document.createElement('script');
-  scr.type = 'text/javascript';
-  scr.nonce = 'fsgdsrtfg';
-  scr.src = 'cmp/cc_'+cmp+'.js';
-  // Bind the event to a (callback) function with several events (for cross browser compatibility)
-  scr.onreadystatechange = callback;
-  scr.onload = callback;
-  // Add the script to the DOM
-  document.head.appendChild(scr);
-
-  var d=document, s='script', t=d.createElement(s), m=typeof c.min=='string'?'.min':'', p=c.path;if(p.substring(p.length - 1)!='/')p+='/';
-  t.src = p + 'cmp/cc_' + trTM.f.strclean(cmp) + m?'.min':'' + '.js';
+  var d=document, s='script', t=d.createElement(s), m=trTM.c.min?'.min':'', p=trTM.c.path;if(p.substring(p.length - 1)!='/')p+='/';
+  t.src = p + 'cmp/cc_' + trTM.f.strclean(cmp) + m + '.js';
+  if (trTM.c.nonce) t.nonce = trTM.c.nonce;
   t.onreadystatechange=callback;
   t.onload=callback;
   t.async=true;
   d.head.appendChild(t);
-}
+};
 
 /**
  * Function to check, whether the user consent info/choice exists and for what purposes and vendors
@@ -209,7 +225,7 @@ trTM.f.load_cc = trTM.f.load_cc || function (cmp, callback) {
  * @returns {boolean} - true, if consent is available, false if not
  * Usage: trTM.f.consent_check('init');
  */
-trTM.f.consent_check = trTM.f.consent_check || function (action) {
+/*trTM.f.consent_check = trTM.f.consent_check || function (action) {
   if (!trTM.d.config) { trTM.f.log('e2', null); return false; }
   if (typeof action!='string' || (action!='init'&&action!='update')) { trTM.f.log('e3', {action:action}); return false; }
   // Check whether response was already given
@@ -227,7 +243,7 @@ trTM.f.consent_check = trTM.f.consent_check || function (action) {
   trTM.d.consent.hasResponse = true;
   trTM.f.log('m2', JSON.parse(JSON.stringify(trTM.d.consent)));
   return true;
-};
+};*/
 
 /**
  * Helper fuction for the consent function
@@ -324,12 +340,20 @@ if (typeof trTM.f.gtm_load!='function') trTM.f.gtm_load = function (w, d, i, l, 
     trTM.d.init = true;
     if (!trTM.c.gtag || typeof trTM.d.consent.gtagConsent!='boolean' || !trTM.d.consent.gtagConsent) {
       var o = {'event':'g'+'tm.js','initTime':new Date().getTime(),'gtm.start':new Date().getTime()};
+      if (trTM.c.nonce) o.nonce = trTM.c.nonce;
       trTM.d.dl.push(o);
       /*w[l]=w[l]||[];*/ w[l].push(o);
     }
     var s = 'script', f = d.getElementsByTagName(s)[0], j = d.createElement(s);
-    j.src = 'https://www.goo'+'glet'+'agmanager.com/g'+'tm.js?id=G'+'TM-'+i + '&l='+l+e;
-    j.async = true; f.parentNode.insertBefore(j, f);
+    j.id = 'trTM_tm'; j.async = true;
+    if (trTM.c.nonce) j.nonce = trTM.c.nonce;
+    if (trTM.c.gtmJS) {
+      j.innerHTML = trTM.c.gtmJS;
+    } else {
+      var u = trTM.c.gtmURL || 'https://www.goo'+'glet'+'agmanager.com/g'+'tm.js';
+      j.src = u + '?id=G'+'TM-'+i + '&l='+l+e;
+    }
+    f.parentNode.insertBefore(j, f);
   }
 };
 
@@ -398,7 +422,7 @@ trTM.f.ev_call = trTM.f.ev_call || function(t,d) {
 trTM.f.domready = trTM.f.domready || function() {
   if (!trTM.d.dom_ready) {
     trTM.f.ev_call('dl',true);
-    trTM.f.fire({ event:'vDOMready', gtag:false });
+    if (trTM.c.dlStateEvents) trTM.f.fire({ event:'vDOMready', gtag:false });
   }
   trTM.d.dom_ready = true;
 };
@@ -411,7 +435,7 @@ trTM.f.domready = trTM.f.domready || function() {
 trTM.f.pageready = trTM.f.pageready || function() {
   if (!trTM.d.page_ready) {
     trTM.f.ev_call('pl',true);
-    trTM.f.fire({ event:'vPAGEready', gtag:false });
+    if (trTM.c.dlStateEvents) trTM.f.fire({ event:'vPAGEready', gtag:false });
   }
   trTM.d.page_ready = true;
 };
@@ -509,6 +533,24 @@ if (typeof trTM.f.inject!='function') trTM.f.inject = function () {
 };
 
 /**
+ * Function for to initialize and inject the trTM 
+ * @property {function} trTM.f.init
+ * Usage: trTM.f.init();
+ */
+trTM.f.init = function () {
+  // Return (and do nothing) if there is a cookie with the name 'trTMoptout' (and a value)
+  if (!trTM.c.debug && trTM.f.gc('trTMoptout')) return;
+  // Read and set the config
+  trTM.f.config(trTM.c);
+  // Inject the trTM
+  if (trTM.c.cmp) {
+    trTM.f.load_cc('consentmanager', trTM.f.inject);
+  } else {
+    trTM.f.inject();
+  }
+};
+
+/**
  * Function for GTM dataLayer.push()
  * @property {function} trTM.f.fire
  * @param {object} o - the event object, e.g. { event:'pageview', pagetype:'blogarticle' }
@@ -552,41 +594,6 @@ if (typeof trTM.f.fire!='function') trTM.f.fire = function (o) {
   trTM.d.dl.push(obj);
   if (typeof trTM.f.fire_callback=='function' && trTM.d.fired) trTM.f.fire_callback(obj);
   trTM.f.log('m7', obj);
-};
-
-/**
- * Function for adding an DL Event
- * @property {function} trTM.f.addEv
- * @param {string} p - Page State, when the Event Listener should be added. Possible values: 'tl' (Tracking/Library loaded), 'dl' (DOM loaded), 'pl' (Page loaded)
- * @param {object} d - DOM object where the event (listener) selector should be added, e.g. document.querySelector('div.navigation'), default is document
- * @param {string} l - Listener, e.g. 'click'
- * @param {string} s - Selector for the DOM elements, e.g. 'div.button'
- * @param {object} o - Event object, e.g. { event:'click', button:'Signup Button' }
- * Usage: trTM.f.addEv( 'dl', document, 'click', 'div.button', { event:'click', button:'Signup Button' } );
- */
-trTM.f.addEv = trTM.f.addEv || function(p, d, l, s, o) {
-  if (typeof p!='string' || !p || typeof d!='object' || !d || typeof l!='string' || !l || typeof s!='string' || !s || typeof o!='object' || !o) return;
-  if (typeof trTM.f[p]!='object') trTM.f[p] = {};
-  trTM.d.ev_fct_ctr++;
-  trTM.f[p]['fct_'+trTM.d.ev_fct_ctr.toString()] = function() {
-    var el = d.querySelectorAll(s);
-    if (typeof el=='object' && typeof el.length=='number' && el.length>0) {
-      var ev = l;
-      switch(ev) {
-        case 'click': ev = 'mousedown'; break;
-      }
-      for (var i=0; i<el.length; i++) {
-        // add function to listener container
-        trTM.f.evLstn(el[i], ev, function() {
-          trTM.f.fire(o);
-        });
-      }
-    } 
-  };
-  // check dom_ready
-  if ((p=='tl' && trTM.d.fired) || (p=='dl' && trTM.d.dom_ready) || (p=='pl' && trTM.d.page_ready)) {
-    trTM.f[p]['fct_'+trTM.d.ev_fct_ctr.toString()]();
-  }
 };
 
 // Run
