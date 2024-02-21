@@ -1,5 +1,5 @@
-# trTMlib.js - Library for easy use GTM and/or GTAG #
-*trTMlib*
+# trTM.js - Library for easy use GTM and/or GTAG #
+*trTM*
 
 
 ## Table of Contents ##
@@ -9,6 +9,7 @@
 - [Configuration options](#configuration-options)
 - [Consent Handling](#consent-handling)
 - [Sending Events only to GTM or only to GTAG](#sending-events-only-to-gtm-or-only-to-gtag)
+- [Integration options for Google Tag Manager](#integration-options-for-google-tag-manager)
 - [Debugging](#debugging)
 - [Frequently Asked Questions (FAQ)](#frequently-asked-questions--faq-)
 - [Author and Contact](#author-and-contact)
@@ -17,10 +18,10 @@
 
 ## What is it for? - General Information ##
 
-trTMlib can help you to make your live easier, if you use the Google Tag Manager depending on user consent.
+trTM can help you to make your live easier, if you use the Google Tag Manager depending on user consent.
 
 ### In short ###
-The “trTMlib” provides functions for an easier and more data privacy friendly integration/handling of Google Tag Manager and GTAG, together (or without) with the Google Consent Mode. GTM will not be fired before or without consent.
+The “trTM” provides functions for an easier and more data privacy friendly integration/handling of Google Tag Manager and GTAG, together (or without) with the Google Consent Mode. GTM will not be fired before or without consent.
 
 ### Something more detailed ###
 Handling Google Tag Manager / GTAG and (cookie) consent is often very tiring and frustrating.
@@ -33,44 +34,73 @@ In any case, with the GTM setup you no longer have to worry about whether and wh
 ### Even more information ###
 Feel free to use or change the code. If you have suggestions for improvement, please write to me.
 **Licence:** MIT License
-**Repository:** [Github trTMlib Repository](https://github.com/Andiministrator/trTM)
+**Repository:** [Github trTM Repository](https://github.com/Andiministrator/trTM)
 
 
 ## Usage ##
 
-Some help for the usage of trTMlib:
+Some help for the usage of trTM:
 
 ### Complete short integration code example ###
-Before you include the code to your website (template), you need to upload the necessary files. In this code example it was uploaded to the public directory /js/.
+Before you include the code to your website (template), you need to upload the necessary files. In this code example it was uploaded to the public directory /templates/scripts/.
 *For Consentmanager and without consent mode support*:
 ```html
-<script src="/js/trTMlib.min.js" type="text/javascript"></script>
-<script src="/js/trTMcmp/consent_check_consentmanager.js" type="text/javascript"></script>
+<!-- trTM Start -->
 <script type="text/javascript">
-trTM.f.config({
-   gtmID: 'GTM-XYZ123'
+(function(c){
+var s='script',w=window,d=document,t=d.createElement(s),m=typeof c.min=='string'?'.min':'',p=c.path;if(p.substring(p.length-1)!='/')p+='/';
+t.src=c.path+'trTM'+m+'.js';t.async=true;w.trTM=w.trTM||{};trTM.c=c;d.head.appendChild(t);
+})({
+  // trTM Config Start
+   path: '/templates/scripts/'
+  ,cmp: 'consentmanager'
+  ,gtmID: 'GTM-XYZ123'
   ,gtmPurposes:'Funktional'
   ,gtmServices:'Google Tag Manager'
+  // trTM Config End
 });
-trTM.f.tm_inject();
 </script>
+<!-- trTM End -->
 ```
-Notice: You need to change the function for the consent check, see below how. Also you need to change the config, see below.
 
-### Usage in explained steps ###
+### Normal Usage in explained steps ###
+
+This is the normal usage, where you upload the trTM folder to your webserver.
+_There is also a possibility to use it just in one file (or Javascript code), see the next chapter for that._
+To use it as normal, follow these steps:
 
 1. **Upload the necessary files**
-   Upload the necessary files, that means at least the library itself (trTMlib.js or the minified version trTMlib.min.js) and the consent check function file regarding to your CMP (Consent Tool). In the code example above, the files were uploaded to the public directory /js/ (we used the minified version) and the Consent Tool is Consent Manager (file consent_check_consentmanager.js and uploaded it in the subdirectory "trTMcmp").
-   We recommend also to upload the file "trTMlib_debug.js". It contains some useful options to debug trTMlib in case of problems.
+   Upload the necessary files, that means at least the library itself (trTM.js and/or the minified version trTM.min.js) and the directory with the consent check function files.
+   Assuming you uploaded trTM in a directory "js", it should at least look like this:
+   ```
+   js/
+     |--> cmp/
+     |      |--> cc_ccm19.js
+     |      |--> cc_ccm19.min.js
+     |      |--> cc_magento_cc_cookie.js
+     |      |--> ...
+     |      `--> index.html
+     |--> trTM.js
+     `--> trTM.min.js
+   ```
 
-2. **Include the trTMlib.js to your HTML code, e.g. in the HTML head (recommendation: use the minified version)**
-   `<script src="/js/trTMlib.min.js" type="text/javascript"></script>`
-
-3. **Add your settings (within a javascript block)**
-   Example with many settings:
-   ```javascript
-   trTM.f.config({
-      gtmID: 'GTM-XYZ123' // your GTM Container ID - leave it empty if you don't want to the Google Tag Manager
+2. **Add the trTM integration (with the configuration) script to your website templates**
+   To understand, what settings you can use and what the meaning of each setting is, read the chapter "Configuration options".
+   Here we give you an integration example with the most of available configuration options. In a normal setup you need just a few of them.
+   Example integration code:
+   ```html
+   <!-- trTM Start -->
+   <script type="text/javascript" id="trTMcontainer" nonce="abc123">
+   (function(c){
+   var s='script',w=window,d=document,t=d.createElement(s),m=typeof c.min=='string'?'.min':'',p=c.path;if(p.substring(p.length-1)!='/')p+='/';
+   t.src=c.path+'trTM'+m+'.js';t.async=true;w.trTM=w.trTM||{};trTM.c=c;d.head.appendChild(t);
+   })({
+   // trTM Config Start
+      path: '/js/' // (relative) path to the directory where trTM is located, e.g. '/js/''
+     ,min:true // inject the files as minified versions
+     ,cmp: 'cookiebot' // Type of Consent Tool (Cookie Banner) you use in lower case, e.g. 'cookiebot'. See chapters below for possible options.
+     ,nonce: 'ABC123' // Nonce value for the file injections
+     ,gtmID: 'GTM-XYZ123' // your GTM Container ID - leave it empty if you don't want to the Google Tag Manager
      ,gtmPurposes: 'Functional' // The purpose(s) that must be agreed to in order to activate the GTM (comma-separated)
      ,gtmServices: 'Google Tag Manager' // The services(s) that must be agreed to in order to activate the GTM (comma-separated), e.g. 'Google Tag Manager'
      ,gtmVendors: 'Google Inc' // The vendor(s) that must be agreed to in order to activate the GTM (comma-separated)
@@ -80,7 +110,8 @@ Notice: You need to change the function for the consent check, see below how. Al
      ,gtagVendors: 'Google Inc' // The vendor(s) that must be agreed to in order to activate the GTAG (comma-separated)
      ,gdl: 'dataLayer' // Name of GTM dataLayer
      ,env: '' // Environment string (leave it blank you you don't know, what it is)
-     ,useListener: false, // Use an event listener to check the consent (true). If it is false, a timer will be used (default) to check the consent
+     ,dlStateEvents: true // Fire GTM dataLayer Events for DOMloaded and PAGEready
+     ,useListener: false // Use an event listener to check the consent (true). If it is false, a timer will be used (default) to check the consent
      ,consent: {
         hasResponse:false // true (or string) if consent was given, false if consent was not (yet) given (user hasn't interacted with the consent banner)
        ,consent_events: 'cmpEvent,cmpUpdate'; // string with consent events (comma-separated) for updating the consent (leave it blank you you don't know, what it is)
@@ -102,29 +133,117 @@ Notice: You need to change the function for the consent check, see below how. Al
          ,security_storage: { status:'granted', purposes:['necessary'], services:[], vendors:[] } // Enables storage related to security such as authentication functionality, fraud prevention, and other user protection
        }
      }
+   // trTM Config End
+   });
+   </script>
+   <!-- trTM End -->
+   ```
+
+3. _optional_ **Send events**
+   You can now send events using the following command:
+   ```javascript
+   trTM.f.fire({ event:'button_click', button:'Sign Up Button', gtm:true, gtag:false });
+   ```
+
+### One-File Usage in explained steps ###
+
+With this integration variant you get out a Javascript code, which conatins all you need. You can use this code either to have just one Javascript file or to integrate it in a CMS script field, or GTM container or whatever you have.
+
+1. **Get the code of the consent_check function**
+   First of all you need to know, which Consent Tool (Cookie Banner) you use for your website. See the point "cmp" in the chapter "Configuration options" for available Consent Tools.
+   You'll find a folder with the name "cmp" within the project folder. This folder contains different files, two files for one Consent Tool (each in a normal and a minimized version). Open the file for your Consent Tool in a Text- or Code-Editor (we recommend to use the minimized version).
+   Copy the file's code to your clipboard.
+   _Notice:_ You don't need to copy the first part of the file. You can start from the part with `trTM.f.consent_check = function `...
+
+2. **Insert the consent_check function code to the trTM.js**
+   Now open the trTM.js file with your Text- or Code-Editor.
+   Search in the file for a function called "trTM.f.consent_check". This function is commented out and should look like this:
+   ```javascript
+   /*trTM.f.consent_check = trTM.f.consent_check || function (action) {
+     if (!trTM.d.config) { trTM.f.log('e2', null); return false; }
+     if (typeof action!='string' || (action!='init'&&action!='update')) { trTM.f.log('e3', {action:action}); return false; }
+     // Check whether response was already given
+     trTM.d.consent = trTM.d.consent || {};
+     if (action=='init' && trTM.d.consent.hasResponse) return true;
+     // Get Consent
+     var purposes = typeof trTM.c.purposes=='string' ? ','+trTM.c.purposes+',' : '';
+     var services = typeof trTM.c.services=='string' ? ','+trTM.c.services+',' : '';
+     var vendors = typeof trTM.c.vendors=='string' ? ','+trTM.c.vendors+',' : '';
+     // Set Response and Feedback and Return
+     trTM.d.consent.purposes = purposes;
+     trTM.d.consent.services = services;
+     trTM.d.consent.vendors = vendors;
+     trTM.d.consent.feedback = 'no valid check fct given, cfg used';
+     trTM.d.consent.hasResponse = true;
+     trTM.f.log('m2', JSON.parse(JSON.stringify(trTM.d.consent)));
+     return true;
+   };*/
+   ```
+   Delete this code (including the comment characters) and replace it with the code of your clipboard.
+   For the consent tool Cookiebot (as minified version) it should look like this:
+   ```javascript
+   trTM.f.consent_check=function(t){if("string"!=typeof t||"init"!=t&&"update"!=t)return"function"==typeof trTM.f.log&&trTM.f.log("e10",{action:t}),!1;if(trTM.d.consent=trTM.d.consent||{},"init"==t&&trTM.d.consent.hasResponse)return!0;if("object"!=typeof Cookiebot)return!1;var n=Cookiebot;if("boolean"!=typeof n.hasResponse||"object"!=typeof n.consent)return!1;if(!n.hasResponse)return!1;var e=trTM.c.purposes?trTM.c.purposes.split(","):[],o=0,r=0;for(k in n.consent)"stamp"!=k&&"method"!=k&&"boolean"==typeof n.consent[k]&&(r++,n.consent[k]&&(o++,e.push(k)));trTM.d.consent.purposes=e.length>0?","+e.join(",")+",":"";var s="Consent available";return 0==r?s="No purposes available":o<=r?s="Consent (partially or full) declined":o>r&&(s="Consent accepted"),trTM.d.consent.feedback=s,"string"==typeof n.consentID&&(trTM.d.consent.consent_id=n.consentID),trTM.d.consent.hasResponse=!0,"function"==typeof trTM.f.log&&trTM.f.log("m2",JSON.parse(JSON.stringify(trTM.d.consent))),!0};
+   ```
+
+3. **Add the configuration and injection**
+   Now we need to add the configuration and injection code at the end of the file "trTM.js".
+   Navigate to the end of the trTM.js file and insert the following code.
+   To understand, what settings you can use and what the meaning of each setting is, read the chapter "Configuration options".
+   Here we give you an integration example with the most of available configuration options. In a normal setup you need just a few of them.
+   Example integration code:
+   ```javascript
+   (function(c){
+   var s='script',w=window,d=document,t=d.createElement(s),m=typeof c.min=='string'?'.min':'',p=c.path;if(p.substring(p.length-1)!='/')p+='/';
+   t.src=c.path+'trTM'+m+'.js';t.async=true;w.trTM=w.trTM||{};trTM.c=c;d.head.appendChild(t);
+   })({
+   // trTM Config Start
+      path: '/js/' // (relative) path to the directory where trTM is located, e.g. '/js/''
+     ,min:true // inject the files as minified versions
+     ,cmp: 'cookiebot' // Type of Consent Tool (Cookie Banner) you use in lower case, e.g. 'cookiebot'. See chapters below for possible options.
+     ,nonce: 'ABC123' // Nonce value for the file injections
+     ,gtmID: 'GTM-XYZ123' // your GTM Container ID - leave it empty if you don't want to the Google Tag Manager
+     ,gtmPurposes: 'Functional' // The purpose(s) that must be agreed to in order to activate the GTM (comma-separated)
+     ,gtmServices: 'Google Tag Manager' // The services(s) that must be agreed to in order to activate the GTM (comma-separated), e.g. 'Google Tag Manager'
+     ,gtmVendors: 'Google Inc' // The vendor(s) that must be agreed to in order to activate the GTM (comma-separated)
+     ,gtag: { 'G-1234567': { debug_mode:true, send_page_view:false } } // GTAG(s) with config - set it to null if you don't want to use GTAG functionallity, example: cfg.gtag = { 'G-xxx': { debug_mode:true, send_page_view:false } };
+     ,gtagPurposes: 'Marketing' // The purpose(s) that must be agreed to in order to activate the GTAG (comma-separated)
+     ,gtagServices: 'Google Analytics' // The services(s) that must be agreed to in order to activate the GTAG (comma-separated), e.g. 'Google Analytics'
+     ,gtagVendors: 'Google Inc' // The vendor(s) that must be agreed to in order to activate the GTAG (comma-separated)
+     ,gdl: 'dataLayer' // Name of GTM dataLayer
+     ,env: '' // Environment string (leave it blank you you don't know, what it is)
+     ,dlStateEvents: true // Fire GTM dataLayer Events for DOMloaded and PAGEready
+     ,useListener: false // Use an event listener to check the consent (true). If it is false, a timer will be used (default) to check the consent
+     ,consent: {
+        hasResponse:false // true (or string) if consent was given, false if consent was not (yet) given (user hasn't interacted with the consent banner)
+       ,consent_events: 'cmpEvent,cmpUpdate'; // string with consent events (comma-separated) for updating the consent (leave it blank you you don't know, what it is)
+       ,consent_id:'' // ID of the current CMP User to request consent info
+       ,feedback:'' // contains a string with a CMP info about whether/how the consent was given - this is tracked as event through the tracking library
+       ,purposes:'' // contains a string with the acknowledged consent purposes
+       ,services: '' // contains a string with the acknowledged consent services
+       ,vendors:'' // contains a string with the acknowledged consent vendors
+       ,cm:true // use the (Gtag) Consent Mode Function
+       ,gtagmap:{ // Mapping for GTAG/GTM integrated Consent Functions - set it to NULL if is not needed
+          ad_storage: { status:'denied', purposes:['marketing'], services:['Google Ads'], vendors:['Google Inc'] } // Enables storage, such as cookies, related to advertising
+         ,ad_user_data: { status:'granted', purposes:['necessary'], services:[], vendors:[] } // Sets consent for sending user data to Google for advertising purposes
+         ,analytics_storage: { status:'denied', purposes:['analytics'], services:['Google Analytics'], vendors:['Google Inc'] } // Enables storage, such as cookies, related to analytics (for example, visit duration)
+         ,ad_personalization: { status:'granted', purposes:['necessary'], services:[], vendors:[] } // Sets consent for personalized advertising.
+                                                                                                    // Note: Disabling personalized advertising using [allow_ad_personalization_signals](https://support.google.com/google-ads/answer/9606827?sjid=10512473389493160849-EU), yields the same results as using ad_personalization. If you set both parameters with conflicting values, personalization is disabled. To honor user choices, implement ad_personalization.
+         ,analytics_audiences: { status:'denied', purposes:['personalization'], services:['Google Analytics'], vendors:['Google Inc'] } // Enables storage, such as cookies, related to analytics (for example, visit duration)
+         ,personalization_storage: { status:'denied', purposes:['marketing'], services:[], vendors:['Google Ads'] } // Enables storage related to personalization such as video recommendations
+         ,functionality_storage: { status:'denied', purposes:['functional'], services:[], vendors:[] } // Enables storage that supports the functionality of the website or app such as language settings
+         ,security_storage: { status:'granted', purposes:['necessary'], services:[], vendors:[] } // Enables storage related to security such as authentication functionality, fraud prevention, and other user protection
+       }
+     }
+   // trTM Config End
    });
    ```
 
-4. **Add the consent check function depending on your consent tool - look for the right file in folder trTMcmp**
-   Example for the consent tool "Consentmanager":
-   `<script src="/js/trTMcmp/consent_check_consentmanager.js" type="text/javascript"></script>`
-   *Notice: Instead including the external script, you could also put the function direct into trTMlib.js and overwrite the function(s) with the same name*
-   Available consent tool functions:
-   - Borlabs Cookie: consent_check_borlabs.js
-   - CCM19: consent_check_ccm19.js
-   - Consentmanager: consent_check_consentmanager.js
-   - Cookiebot: consent_check_cookiebot.js
-   - Cookie First: consent_check_cookiefirst.js
-   - Klaro: consent_check_klaro.js
-   - Sourcepoint: consent_check_sourcepoint.js
-   - Usercentrics: consent_check_usercentrics.js
+4. **Use the trTM.js code**
+   Now the code is complete and you can do whatever you want with the code.
+   Save the file or put the code in a Javascript field of your CMS or use it in a GTM container or include it direct to your website.
+   We recommend to minify the code (e.g. with https://minify-js.com/). Keep care that you don't minify the function names (option "keep_fnames" for minify-js.com).
 
-5. **Start the injection (within the same javascript block from above)**
-   ```javascript
-   trTM.f.tm_inject();
-   ```
-
-6. **Send events**
+5. _optional_ **Send events**
    You can now send events using the following command:
    ```javascript
    trTM.f.fire({ event:'button_click', button:'Sign Up Button', gtm:true, gtag:false });
@@ -134,6 +253,46 @@ Notice: You need to change the function for the consent check, see below how. Al
 ## Configuration options ##
 
 There are a lot configuration options. But you need only to use the options, where you want another setting as the default value.
+
+### debug ###
+If this is true, the optout cookie will be ignored
+Type: boolean
+Example: `true`
+Default: `false`
+
+### path ###
+The (relative) path to the directory where trTM is located, e.g. '/js/''
+Type: string
+Example: `'/js/'`
+Default: ``
+
+### cmp ###
+Type of Consent Tool (Cookie Banner) you use in lower case, e.g. 'cookiebot'.
+Available options:
+   - Borlabs Cookie: borlabs
+   - CCM19: ccm19
+   - Consentmanager: consentmanager
+   - Cookiebot: cookiebot
+   - Cookie First: cookiefirst
+   - Klaro: klaro
+   - Magento CC Cookie: magento_cc_cookie
+   - Sourcepoint: sourcepoint
+   - Usercentrics: usercentrics
+Type: string
+Example: `'cookiebot'`
+Default: `''`
+
+### min ###
+Inject the files as minified versions
+Type: boolean
+Example: `false`
+Default: `true`
+
+### nonce ###
+Nonce value for the file injections. If it is set, the nonce will be added to all script-injections.
+Type: string
+Example: `ABC123`
+Default: ``
 
 ### useListener ###
 Use an event listener to check the consent (true). If it is false, a timer will be used (default) to check the consent.
@@ -152,6 +311,38 @@ Type: string
 Example: `'GTM-XYZ123'`
 Default: `''`
 
+### gdl ###
+Name of GTM dataLayer
+Type: string
+Example: `'dataLayer'`
+Default: `'dataLayer'`
+
+### dlStateEvents ###
+Fire GTM dataLayer Events for DOMloaded and PAGEready
+Type: boolean
+Example: `false`
+Default: `true`
+
+### gtmURL ###
+If you use an own url to the GTM (e.g. using the serverside Google Tag Manager), you can set your URL here.
+Leave it blank if you don't know what this means.
+If the option is not set (or if it is empty) the standard GTM URL will be used (https://www.googletagmanager.com/gtm.js).
+Type: string
+Example: `'https://tm.my-own-website.org/my-gtm.js'`
+Default: `''`
+
+### gtmJS ###
+Possibility to give the GTM JS direct as Javascript content. In this case, no external JS script will be loaded.
+Type: string
+Example: The content of the JS file https://www.googletagmanager.com/gtm.js?id=GTM-XYZ123
+Default: `''`
+
+### env ###
+Environment string (leave it blank you you don't know, what it is)
+Type: string
+Example: `'&gtm_auth=ABC123xyz&gtm_preview=env-1&gtm_cookies_win=x'`
+Default: `''`
+
 ### gtmPurposes ###
 The purpose(s) that must be agreed to in order to activate the GTM (comma-separated)
 Type: string
@@ -168,18 +359,6 @@ Default: `''`
 The vendor(s) that must be agreed to in order to activate the GTM (comma-separated)
 Type: string
 Example: `'Google Inc'`
-Default: `''`
-
-### gdl ###
-Name of GTM dataLayer
-Type: string
-Example: `'dataLayer'`
-Default: `'dataLayer'`
-
-### env ###
-Environment string (leave it blank you you don't know, what it is)
-Type: string
-Example: `'&gtm_auth=ABC123xyz&gtm_preview=env-1&gtm_cookies_win=x'`
 Default: `''`
 
 ### gtag ###
@@ -332,7 +511,7 @@ The **second option** is to run the update function through an event listener. A
 ### See consented Purposes and Vendors ###
 You can check, which purposes and vendors have consent by the following command (enter it in the browser console):
 `trTM.d.consent`
-If it is empty (or undefined), the trTMlib got no consent information (yet).
+If it is empty (or undefined), the trTM got no consent information (yet).
 
 ### GTM and/or GTAG Purposes and Vendors ###
 There are 4 config options to inject the GTM and/or the GTAG consent-depending:
@@ -433,7 +612,7 @@ To activate the Google Consent Mode in GTM, you should enable the consent overvi
 ![GTM Container Settings](assets/trTM-gtm-enable-cm.png)
 All other settings are in each GTM Tag. There you can configure, for what service (Consent Type Name) the consent is needed:
 ![GTM Tag Consent Settings](assets/trTM-gtm-tag-cm-settings.png)
-The Tag is only fired, if alle configured services (in that special tag) have consent. In case the tag is triggered and should be fired, but the consent is not available yet (or denied), the Tag can wait. If the consent comes later, the tag will be fired than (at normally). Because you use the trTMlib, you'll not need this GTM feature in most cases - you have the consent always from the GTM start. So it is only interesting, if a user declines the consent and accept it later on the same pageload.
+The Tag is only fired, if alle configured services (in that special tag) have consent. In case the tag is triggered and should be fired, but the consent is not available yet (or denied), the Tag can wait. If the consent comes later, the tag will be fired than (at normally). Because you use the trTM, you'll not need this GTM feature in most cases - you have the consent always from the GTM start. So it is only interesting, if a user declines the consent and accept it later on the same pageload.
 
 
 ## Sending Events only to GTM or only to GTAG ##
@@ -453,6 +632,31 @@ Example:
 `trTM.f.fire({ event:'scroll', gtagID:'G-1234567' });`
 
 
+## Integration options for Google Tag Managaer ##
+
+There are three options to integrate the Google Tag Manager code:
+- Normal use of Google Tag Manager
+- Loading the GTM from an own URL
+- Loading the GTM code direct as Javascript
+These three options are explained below.
+
+### Normal use of Google Tag Manager ###
+This is just the normal integration option for using the Google Tag Manager as usual (from Google directly).
+Therefore you just need to specify the GTM Container ID with the configuration option "gtmID".
+Don't use the configuration options "gtmURL" or "gtmJS".
+
+### Loading the GTM from an own URL ###
+If you use an own Google Tag Manager server (e.g. using the serverside GTM), you can specify an own URL therefore using the configuration option "gtmURL".
+This will replace the standard GTM URL (https://www.googletagmanager.com/gtm.js).
+In addition you need to set the GTM Container ID with the configuration option "gtmID".
+Don't use the configuration option "gtmJS".
+
+### Loading the GTM code direct as Javascript ###
+In case you have the output of your Google Tag Manager container stored in a database or somewhere else, you can use this option.
+The Javascript code must be assigned to the "gtmJS" configuration option (as string).
+The configuration options "gtmID" or "gtmURL" will be ignored in this case.
+
+
 ## Debugging ##
 
 All settings, data and functions are stored in only one object: `trTM`
@@ -460,10 +664,10 @@ You can enter the name of the object (trTM) into the browser console and you'll 
 
 Also, the library logs some errors or success messages into an internal array (trTM.l). But this array contains only IDs of the messages. To understand it, you need our mapping:
 There is an additional file for translating and printing these messages to the browser console.
-The file has the name "trTMlib_debug.js" and is hopefully uploaded.
+The file has the name "trTM_debug.js" and is hopefully uploaded.
 To get the debug messages, follow these two steps:
 1. Load the file by entering this line into the browser console:
-   `var s=document.createElement('script'); s.src='https://www.YOUR-DOMAIN.COM/PATH/TO/trTMlib_debug.js'; document.body.appendChild(s);`
+   `var s=document.createElement('script'); s.src='https://www.YOUR-DOMAIN.COM/PATH/TO/trTM_debug.js'; document.body.appendChild(s);`
    *Note: replace the domain and path to the file with your correct path*
 2. Wait a second.
 3. Enter this command into the browser console:
@@ -484,7 +688,7 @@ The Parameter "a" gives you the action that was submitted to the original consen
 
 ### Callback after injecting the Google Tag Manager ###
 After the Google Tag Manager was (successful) injected into a page, the following callback function is called:
-`trTM.f.gtm_inject_callback()`
+`trTM.f.inject_callback()`
 
 ### Callback after injecting the GTAG ###
 After the GTAG was (successful) injected into a page, the following callback function is called:
@@ -524,6 +728,13 @@ Feel free to contact me if you found problems or improvements:
 
 
 ## Changelog ##
+
+- Version 1.4, *20.02.2024*
+  - DOMloaded and PAGEready Events added (configurable)
+  - Improved integration
+  - Added a possibility to optout (having a cookie with the name 'trTMoptout' (and a value))
+  - Added some more configuration option
+  - Added the possibility to integrate the GTM from a serverside container or even as Javascript code.
 
 - Version 1.3.5, *07.01.2024*
   - Bug in Consent Check functions (and default consent_check) fixed for gtag arguments
