@@ -1,42 +1,38 @@
-//[trTMlib.js]BOF
+//[trTM.js]BOF
 
 /**
  * Global implementation script/object for Google GTAG and Tag Manager, depending on the user consent.
- * @version 1.4
- * @lastupdate 10.01.2024 by Andi Petzoldt <andi@tracking-garden.com>
+ * @version 1.4.1
+ * @lastupdate 22.02.2024 by Andi Petzoldt <andi@tracking-garden.com>
+ * @repository https://github.com/Andiministrator/trTM/
  * @author Andi Petzoldt <andi@petzoldt.net>
- * @documentation see README.md
+ * @documentation see README.md or https://github.com/Andiministrator/trTM/
  * @usage (with example config):
- *     <script type="text/javascript" id="trTM" data-nonce="abc123" data-hash="def456">
- *     (function(c){
- *     var s='script',w=window,d=document,t=d.createElement(s),m=typeof c.min=='string'?'.min':'',p=c.path;if(p.substring(p.length - 1)!='/')p+='/';
- *     t.src=c.path+'trTM'+m+'.js';t.async=true;w.trTM=w.trTM||{};trTM.c=c;d.head.appendChild(t);
- *     })({
- *        path: '/js/'
- *       ,min: false
- *       ,gtmID: 'GTM-XYZ123'
- *       ,env:'&gtm_auth=ABC123xyz&gtm_preview=env-1&gtm_cookies_win=x'
- *       ,consent: {
- *          cm:true
- *         ,gtagmap:{
- *            ad_storage: { vendors:['Google Ads'] }
- *           ,analytics_storage: { vendors:['Google Analytics'] }
- *           ,my_storage: { vendors:['My Analytics'] }
- *         }
- *       }
- *     });
- *     </script>
- *     
- *     Old:
- *     trTM.f.config({ env:'&gtm_auth=ABC123xyz&gtm_preview=env-1&gtm_cookies_win=x', gtmID:'GTM-XYZ123' });
- *     trTM.f.inject();
+ * <script type="text/javascript" id="trTMcontainer" nonce="abc123">
+ * (function(c){
+ * var s='script',w=window,d=document,t=d.createElement(s),m=typeof c.min=='string'?'.min':'',p=c.path;if(p.substring(p.length-1)!='/')p+='/';
+ * t.src=c.path+'trTM'+m+'.js';t.async=true;w.trTM=w.trTM||{};trTM.c=c;d.head.appendChild(t);
+ * })({
+ *    path: '/js/'
+ *   ,cmp: 'cookiebot'
+ *   ,gtmID: 'GTM-XYZ123'
+ *   ,consent: {
+ *      cm:true
+ *     ,gtagmap:{
+ *        ad_storage: { vendors:['Google Ads'] }
+ *       ,analytics_storage: { vendors:['Google Analytics'] }
+ *       ,my_storage: { vendors:['My Analytics'] }
+ *     }
+ *   }
+ * });
+ * </script>
  */
 
 // Initialitialize the objects
 window.trTM = window.trTM || {}; // Tag Manager Global Object
 trTM.c = trTM.c || {}; // TM Configuration Settings Object
 trTM.d = trTM.d || {}; // TM Data Object
-trTM.d.version = '1.4'; // trTM Version
+trTM.d.version = '1.4.1'; // trTM Version
 trTM.d.config = trTM.d.config || false; // is TM is configured?
 trTM.d.init = trTM.d.init || false; // is TM Initialisation complete?
 trTM.d.fired = trTM.d.fired || false; // is TM active (was fired)
@@ -89,13 +85,14 @@ if (typeof trTM.f.config!='function') trTM.f.config = function (cfg) {
   // Set the Config
   trTM.c.debug = cfg.debug || false; // If this is true, the optout cookie will be ignored
   trTM.c.path = cfg.path || ''; // (relative) path to the directory where trTM is located, e.g. '/js/''
+  trTM.c.file = cfg.file || 'trTM.js'; // Filename of trTM
   trTM.c.cmp = cfg.cmp || ''; // Type of Consent Tool (Cookie Banner) you use in lower case, e.g. 'cookiebot'. See README.md for possible options.
   if (typeof trTM.c.min!='boolean') trTM.c.min = true; // inject the files as minified versions
   trTM.c.nonce = cfg.nonce || ''; // Nonce value for the file injections
   trTM.c.useListener = cfg.useListener || false; // Use an event listener to check the consent (true). If it is false, a timer will be used (default) to check the consent
   trTM.c.gtmID = cfg.gtmID || ''; // your GTM Container ID - leave it empty if you don't want to the Google Tag Manager
   trTM.c.gtmURL = cfg.gtmURL || ''; // If you use an own url to the GTM (e.g. using the serverside Google Tag Manager), you can set your URL here. Leave it blank if you don't know what this means.
-  trTM.c.gtmJS = cfg.gtmJS || ''; // Possibility to give the GTM JS direct as Javascript content. In this case, no external JS script will be loaded.
+  trTM.c.gtmJS = cfg.gtmJS || ''; // Possibility to give the GTM JS direct as Javascript content, but Base64-encoded. In this case, no external JS script will be loaded.
   trTM.c.gtmPurposes = cfg.gtmPurposes || ''; // The purpose(s) that must be agreed to in order to activate the GTM (comma-separated), e.g. 'Functional'
   trTM.c.gtmServices = cfg.gtmServices || ''; // The services(s) that must be agreed to in order to activate the GTM (comma-separated), e.g. 'Google Tag Manager'
   trTM.c.gtmVendors = cfg.gtmVendors || ''; // The vendors(s) that must be agreed to in order to activate the GTM (comma-separated), e.g. 'Google Inc'
@@ -348,7 +345,7 @@ if (typeof trTM.f.gtm_load!='function') trTM.f.gtm_load = function (w, d, i, l, 
     j.id = 'trTM_tm'; j.async = true;
     if (trTM.c.nonce) j.nonce = trTM.c.nonce;
     if (trTM.c.gtmJS) {
-      j.innerHTML = trTM.c.gtmJS;
+      j.innerHTML = atob(trTM.c.gtmJS);
     } else {
       var u = trTM.c.gtmURL || 'https://www.goo'+'glet'+'agmanager.com/g'+'tm.js';
       j.src = u + '?id=G'+'TM-'+i + '&l='+l+e;
@@ -599,4 +596,4 @@ if (typeof trTM.f.fire!='function') trTM.f.fire = function (o) {
 // Run
 trTM.f.init();
 
-//[trTMlib.js]EOF
+//[trTM.js]EOF

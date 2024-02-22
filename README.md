@@ -97,6 +97,7 @@ To use it as normal, follow these steps:
    })({
    // trTM Config Start
       path: '/js/' // (relative) path to the directory where trTM is located, e.g. '/js/''
+     ,file: 'trTM.js' // Filename of trTM
      ,min:true // inject the files as minified versions
      ,cmp: 'cookiebot' // Type of Consent Tool (Cookie Banner) you use in lower case, e.g. 'cookiebot'. See chapters below for possible options.
      ,nonce: 'ABC123' // Nonce value for the file injections
@@ -198,6 +199,7 @@ With this integration variant you get out a Javascript code, which conatins all 
    })({
    // trTM Config Start
       path: '/js/' // (relative) path to the directory where trTM is located, e.g. '/js/''
+     ,file: 'trTM.js' // Filename of trTM
      ,min:true // inject the files as minified versions
      ,cmp: 'cookiebot' // Type of Consent Tool (Cookie Banner) you use in lower case, e.g. 'cookiebot'. See chapters below for possible options.
      ,nonce: 'ABC123' // Nonce value for the file injections
@@ -266,6 +268,13 @@ Type: string
 Example: `'/js/'`
 Default: ``
 
+
+### file ###
+Filename of trTM
+Type: string
+Example: `'trTM-1.4.1.js'`
+Default: `trTM.js`
+
 ### cmp ###
 Type of Consent Tool (Cookie Banner) you use in lower case, e.g. 'cookiebot'.
 Available options:
@@ -332,7 +341,7 @@ Example: `'https://tm.my-own-website.org/my-gtm.js'`
 Default: `''`
 
 ### gtmJS ###
-Possibility to give the GTM JS direct as Javascript content. In this case, no external JS script will be loaded.
+Possibility to give the GTM JS direct as Javascript content, but Base64-encoded. In this case, no external JS script will be loaded.
 Type: string
 Example: The content of the JS file https://www.googletagmanager.com/gtm.js?id=GTM-XYZ123
 Default: `''`
@@ -637,7 +646,7 @@ Example:
 There are three options to integrate the Google Tag Manager code:
 - Normal use of Google Tag Manager
 - Loading the GTM from an own URL
-- Loading the GTM code direct as Javascript
+- Loading the GTM code direct as Javascript (Base64-encoded)
 These three options are explained below.
 
 ### Normal use of Google Tag Manager ###
@@ -651,9 +660,9 @@ This will replace the standard GTM URL (https://www.googletagmanager.com/gtm.js)
 In addition you need to set the GTM Container ID with the configuration option "gtmID".
 Don't use the configuration option "gtmJS".
 
-### Loading the GTM code direct as Javascript ###
+### Loading the GTM code direct as Javascript (Base64-encoded) ###
 In case you have the output of your Google Tag Manager container stored in a database or somewhere else, you can use this option.
-The Javascript code must be assigned to the "gtmJS" configuration option (as string).
+The Javascript code must be assigned to the "gtmJS" configuration option (as string and  base64-encoded).
 The configuration options "gtmID" or "gtmURL" will be ignored in this case.
 
 
@@ -728,6 +737,9 @@ Feel free to contact me if you found problems or improvements:
 
 
 ## Changelog ##
+
+- Version 1.4.1, *22.02.2024*
+  - Fix for Feature gtmJS (loading the GTM JS content direct) - the content has now to be Base64-encoded
 
 - Version 1.4, *20.02.2024*
   - DOMloaded and PAGEready Events added (configurable)
