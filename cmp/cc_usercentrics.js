@@ -42,14 +42,14 @@ trTM.f.consent_check = function (action) {
     if (typeof sc.history!='object') return false;
     if (typeof sc.status!='boolean' || sc.history.length==0) return false;
     if (sc.history.length==1 && typeof sc.history[0].action=='string' && sc.history[0].action=='onInitialPageLoad' && !sc.status) return false;
-    var nonEU = false;
+    trTM.d.consent.nonEU = trTM.d.consent.nonEU || false;
     if (sc.history.length>0) {
       for (var h=0; h<sc.history.length; h++) {
-        if (typeof sc.history[h].action=='string' && typeof sc.history[h].status=='boolean' && sc.history[h].action=='onNonEURegion' && sc.history[h].status) nonEU = true;
+        if (typeof sc.history[h].action=='string' && typeof sc.history[h].status=='boolean' && sc.history[h].action=='onNonEURegion' && sc.history[h].status) trTM.d.consent.nonEU = true;
       }
     }
     serviceCtr++;
-    if (nonEU || (typeof ci[i].isEssential=='boolean' && ci[i].isEssential)) serviceEssCtr++;
+    if (trTM.d.consent.nonEU || (typeof ci[i].isEssential=='boolean' && ci[i].isEssential)) serviceEssCtr++;
     if (sc.status) {
       services.push( typeof ci[i].name=='string' ? ci[i].name.replace(',', '') : ci[i].id );
       serviceIDs.push( ci[i].id );
