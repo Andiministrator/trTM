@@ -738,6 +738,10 @@ Feel free to contact me if you found problems or improvements:
 
 ## Changelog ##
 
+- Version 1.4.2, *27.02.2024*
+  - Usercentrics flaf for nonEU users added
+  - min directory removed
+
 - Version 1.4.1, *22.02.2024*
   - Fix for Feature gtmJS (loading the GTM JS content direct) - the content has now to be Base64-encoded
 
