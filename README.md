@@ -10,6 +10,7 @@
 - [Consent Handling](#consent-handling)
 - [Sending Events only to GTM or only to GTAG](#sending-events-only-to-gtm-or-only-to-gtag)
 - [Integration options for Google Tag Manager](#integration-options-for-google-tag-manager)
+- [Function execution sequence](#function-execution-sequence)
 - [Debugging](#debugging)
 - [Frequently Asked Questions (FAQ)](#frequently-asked-questions--faq-)
 - [Author and Contact](#author-and-contact)
@@ -48,8 +49,7 @@ Before you include the code to your website (template), you need to upload the n
 <!-- trTM Start -->
 <script type="text/javascript">
 (function(c){
-var s='script',w=window,d=document,t=d.createElement(s),m=typeof c.min=='string'?'.min':'',p=c.path;if(p.substring(p.length-1)!='/')p+='/';
-t.src=c.path+'trTM'+m+'.js';t.async=true;w.trTM=w.trTM||{};trTM.c=c;d.head.appendChild(t);
+var w=window,d=document;w.trTM=w.trTM||{};w.trTM.c=c;var s='script',t=d.createElement(s),m=c.min?'.min':'',p=c.path;if(p.length>0&&p.substring(p.length-1)!='/')p+='/';t.src=c.path+'trTM'+m+'.js';t.async=true;d.head.appendChild(t);
 })({
   // trTM Config Start
    path: '/templates/scripts/'
@@ -92,8 +92,7 @@ To use it as normal, follow these steps:
    <!-- trTM Start -->
    <script type="text/javascript" id="trTMcontainer" nonce="abc123">
    (function(c){
-   var s='script',w=window,d=document,t=d.createElement(s),m=typeof c.min=='string'?'.min':'',p=c.path;if(p.substring(p.length-1)!='/')p+='/';
-   t.src=c.path+'trTM'+m+'.js';t.async=true;w.trTM=w.trTM||{};trTM.c=c;d.head.appendChild(t);
+   var w=window,d=document;w.trTM=w.trTM||{};w.trTM.c=c;var s='script',t=d.createElement(s),m=c.min?'.min':'',p=c.path;if(p.length>0&&p.substring(p.length-1)!='/')p+='/';t.src=c.path+'trTM'+m+'.js';t.async=true;d.head.appendChild(t);
    })({
    // trTM Config Start
       path: '/js/' // (relative) path to the directory where trTM is located, e.g. '/js/''
@@ -110,6 +109,8 @@ To use it as normal, follow these steps:
      ,gtagServices: 'Google Analytics' // The services(s) that must be agreed to in order to activate the GTAG (comma-separated), e.g. 'Google Analytics'
      ,gtagVendors: 'Google Inc' // The vendor(s) that must be agreed to in order to activate the GTAG (comma-separated)
      ,gdl: 'dataLayer' // Name of GTM dataLayer
+     ,gdlClear: false // Clear the GTM dataLayer before loading the GTM
+     ,gdlRepeat: [] // Repeat the GTM dataLayer events which are specified in this array (after loading the GTM). Use * as placeholder
      ,env: '' // Environment string (leave it blank you you don't know, what it is)
      ,dlStateEvents: true // Fire GTM dataLayer Events for DOMloaded and PAGEready
      ,useListener: false // Use an event listener to check the consent (true). If it is false, a timer will be used (default) to check the consent
@@ -194,8 +195,7 @@ With this integration variant you get out a Javascript code, which conatins all 
    Example integration code:
    ```javascript
    (function(c){
-   var s='script',w=window,d=document,t=d.createElement(s),m=typeof c.min=='string'?'.min':'',p=c.path;if(p.substring(p.length-1)!='/')p+='/';
-   t.src=c.path+'trTM'+m+'.js';t.async=true;w.trTM=w.trTM||{};trTM.c=c;d.head.appendChild(t);
+   var w=window,d=document;w.trTM=w.trTM||{};w.trTM.c=c;var s='script',t=d.createElement(s),m=c.min?'.min':'',p=c.path;if(p.length>0&&p.substring(p.length-1)!='/')p+='/';t.src=c.path+'trTM'+m+'.js';t.async=true;d.head.appendChild(t);
    })({
    // trTM Config Start
       path: '/js/' // (relative) path to the directory where trTM is located, e.g. '/js/''
@@ -212,6 +212,8 @@ With this integration variant you get out a Javascript code, which conatins all 
      ,gtagServices: 'Google Analytics' // The services(s) that must be agreed to in order to activate the GTAG (comma-separated), e.g. 'Google Analytics'
      ,gtagVendors: 'Google Inc' // The vendor(s) that must be agreed to in order to activate the GTAG (comma-separated)
      ,gdl: 'dataLayer' // Name of GTM dataLayer
+     ,gdlClear: false // Clear the GTM dataLayer before loading the GTM
+     ,gdlRepeat: [] // Repeat the GTM dataLayer events which are specified in this array (after loading the GTM). Use * as placeholder
      ,env: '' // Environment string (leave it blank you you don't know, what it is)
      ,dlStateEvents: true // Fire GTM dataLayer Events for DOMloaded and PAGEready
      ,useListener: false // Use an event listener to check the consent (true). If it is false, a timer will be used (default) to check the consent
@@ -306,7 +308,8 @@ Default: ``
 ### useListener ###
 Use an event listener to check the consent (true). If it is false, a timer will be used (default) to check the consent.
 You should add the following command to your Consent Event Listener:
-`trTM.f.consent_event_listener();`
+`trTM.f.call_cc();`
+The function returns `true`, if the consent info has loaded successful, otherwise `false`.
 *Make sure, that the trTM lib is loaded before the event listener runs!*
 If you don't know what that means, leave this option to false (default).
 For more information, read the chapter "[Use Event Listeners instead of the default timer](#use-event-listeners-instead-of-the-default-timer)".
@@ -325,6 +328,18 @@ Name of GTM dataLayer
 Type: string
 Example: `'dataLayer'`
 Default: `'dataLayer'`
+
+### gdlClear ###
+Clear the GTM dataLayer before loading the GTM
+Type: boolean
+Example: `true`
+Default: `false`
+
+### gdlRepeat ###
+Repeat the GTM dataLayer events which are specified in this array (after loading the GTM). Use * as placeholder
+Type: array
+Example: `['consent*','purchase']`
+Default: `[]`
 
 ### dlStateEvents ###
 Fire GTM dataLayer Events for DOMloaded and PAGEready
@@ -505,8 +520,9 @@ Default: `{ status:'denied', purposes:[], services:[], vendors:[] }`
 ### Use Event Listeners instead of the default timer ###
 By default, a timer is used to check whether the initial consent information is available. It will check every 100ms, whether the user hase given his consent (or declined it).
 If you have the possibility to use an Event Listener for this, you can set the option "useListener" to true. In this case, no timer will start. But you need to add the following command to your Event Listener function:
-`trTM.f.consent_event_listener();`
+`trTM.f.call_cc();`
 This command should run after the user has initial decided for consent.
+The function returns `true`, if the consent info has loaded successful, otherwise `false`.
 *Don't use it for consent update - read therefor the next point).*
 
 ### Updating Consent Information ###
@@ -514,7 +530,7 @@ There are two options to update existing consent information (e.g. if the user a
 The **first option** is to send an event with a special name to the dataLayer. You can configure the event name(s) with the config option "consent.consent_events". If you have more than one event name, you can configure more event names (comma-separated).
 If an event comes into the dataLayer with one of the configured event names, the consent will be re-checked and updated.
 The **second option** is to run the update function through an event listener. Add the following command to the Event Listener for updating the consent info:
-`trTM.f.consent('update')`
+`trTM.f.run_cc('update')`
 *Don't use this command for the initial check of the consent. Read therefore the point above.*
 
 ### See consented Purposes and Vendors ###
@@ -666,6 +682,75 @@ The Javascript code must be assigned to the "gtmJS" configuration option (as str
 The configuration options "gtmID" or "gtmURL" will be ignored in this case.
 
 
+## Function execution sequence ##
+
+### init() ###
+_called from the integration script_
+Initialization of trTM.
+Calls **config(trTM.c);**
+- If a CMP (trTM.c.cmp) was specified: **load_cc(trTM.c.cmp, trTM.f.consent_listener);**
+- If no CMP (trTM.c.cmp) was specified: **consent_listener();**
+
+### config(config) ###
+_called from init()_
+Gets the configuration options and stes the necessary data options.
+
+### consent_listener ###
+_called from init()_
+Checks, whether an Event Listener calls the call_cc() or if a timer has top be set for calling call_cc().
+Calls **call_cc()**
+
+### call_cc ###
+_called from consent_listener() or an external event listener_
+Checks the consent with `run_cc('init')` and returns `false` if the consent isn't ready. Otherwise it deletes the timer (if it is set), runs `inject()` and returns true.
+Calls **run_cc('init')**, **inject()**
+
+### run_cc ###
+_called from call_cc() or fire(o)_
+Runs the Consent Check. Returns `true` if the consent is available and `false` if not.
+Calls **consent_check('init|update')**, **gtag(update)**, **fire(event:trTM_consent_update)**
+Callback: consent_callback(init|update)
+
+### load_cc() ###
+_called from init()_
+Loads the Consent Check function (as external file or code) for the specified CMP.
+Calls: **consent_listener()** (after consent_check function has loaded)
+
+### inject() ###
+_called from call_cc() through timer or event listener_
+Injects the GTM and/or GTAG(for Analytics).
+Calls: **gtag(init)**, **gtag(for Analytics)**, **gtm_load(GTM-Config)**, **fire(event:trTM_consent_init)**, **domready()**, **pageready()**, **evLstn(DOMContentLoaded)**, **evLstn([window]load)**
+Callbacks: gtag_inject_callback(), inject_callback()
+
+### gtm_load(GTM-Config) ###
+_called from inject()_
+Function to initialize the Google Tag Manager
+
+### evLstn(DOMobject,EventName,Fkt) ###
+_called from inject()_
+Function for adding an Event Listener
+
+### domready() ###
+_called from inject()_
+Function to run by DOMready state, fires a dataLayer event 'vDOMready'
+Calls: **fire(event:vDOMready)**
+
+### pageready() ###
+_called from inject()_
+Function to run by PAGEloaded state, fires a dataLayer event 'vPAGEready'
+Calls: **fire(event:vPAGEready)**
+
+### gc(cookiename) ###
+_called from init()_
+Returns a value of a cookie
+
+### fire(event) ###
+_called from inject(), run_cc(), domready(), pageready()_
+Function for GTM dataLayer.push()
+Calls: **gtag(for Analytics)**
+Callback: fire_callback()
+
+
 ## Debugging ##
 
 All settings, data and functions are stored in only one object: `trTM`
@@ -738,9 +823,14 @@ Feel free to contact me if you found problems or improvements:
 
 ## Changelog ##
 
-- Version 1.4.2, *27.02.2024*
-  - Usercentrics flaf for nonEU users added
+- Version 1.5, *29.02.2024*
+  - Usercentrics flag for nonEU users added
   - min directory removed
+  - Bug in Consent Check fixed
+  - Configuration setting "gdlRepeat" added to specify events that should be repeated after loading the GTM
+  - Configuration setting "gdlClear" added to clear the dataLayer before loading the GTM
+  - Added the possibility to add more than one GTM
+  - Event Listener changed
 
 - Version 1.4.1, *22.02.2024*
   - Fix for Feature gtmJS (loading the GTM JS content direct) - the content has now to be Base64-encoded

@@ -2,20 +2,23 @@
 
 /**
  * Global implementation script/object for Google GTAG and Tag Manager, depending on the user consent.
- * @version 1.4.2
- * @lastupdate 27.02.2024 by Andi Petzoldt <andi@tracking-garden.com>
+ * @version 1.5
+ * @lastupdate 29.02.2024 by Andi Petzoldt <andi@tracking-garden.com>
  * @repository https://github.com/Andiministrator/trTM/
  * @author Andi Petzoldt <andi@petzoldt.net>
  * @documentation see README.md or https://github.com/Andiministrator/trTM/
  * @usage (with example config):
  * <script type="text/javascript" id="trTMcontainer" nonce="abc123">
  * (function(c){
- * var s='script',w=window,d=document,t=d.createElement(s),m=typeof c.min=='string'?'.min':'',p=c.path;if(p.substring(p.length-1)!='/')p+='/';
- * t.src=c.path+'trTM'+m+'.js';t.async=true;w.trTM=w.trTM||{};trTM.c=c;d.head.appendChild(t);
+ * var w=window,d=document;w.trTM=w.trTM||{};w.trTM.c=c;var s='script',t=d.createElement(s),m=c.min?'.min':'',p=c.path;if(p.length>0&&p.substring(p.length-1)!='/')p+='/';
+ * t.src=c.path+'trTM'+m+'.js';t.async=true;d.head.appendChild(t);
  * })({
  *    path: '/js/'
  *   ,cmp: 'cookiebot'
  *   ,gtmID: 'GTM-XYZ123'
+ *   ,gtm: {
+ *     'GTM-XYZ123': {}
+ *    }
  *   ,consent: {
  *      cm:true
  *     ,gtagmap:{
@@ -32,7 +35,7 @@
 window.trTM = window.trTM || {}; // Tag Manager Global Object
 trTM.c = trTM.c || {}; // TM Configuration Settings Object
 trTM.d = trTM.d || {}; // TM Data Object
-trTM.d.version = '1.4.2'; // trTM Version
+trTM.d.version = '1.5'; // trTM Version
 trTM.d.config = trTM.d.config || false; // is TM is configured?
 trTM.d.init = trTM.d.init || false; // is TM Initialisation complete?
 trTM.d.fired = trTM.d.fired || false; // is TM active (was fired)
@@ -74,7 +77,7 @@ if (typeof trTM.f.strclean!='function') trTM.f.strclean = function (str) {
  * Function to set the config
  * @property {function} trTM.f.config
  * @param {object} cfg - the object with your settings
- * Usage: trTM.f.config({ env:'&gtm_auth=ABC123xyz&gtm_preview=env-1&gtm_cookies_win=x', gtmID:'GTM-XYZ123' });
+ * Usage: trTM.f.config({ min:false, gtm: {'GTM-XYZ123':{env:'&gtm_auth=ABC123xyz&gtm_preview=env-1&gtm_cookies_win=x}} });
  */
 if (typeof trTM.f.config!='function') trTM.f.config = function (cfg) {
   // Check, wether config was already set
@@ -90,15 +93,19 @@ if (typeof trTM.f.config!='function') trTM.f.config = function (cfg) {
   if (typeof trTM.c.min!='boolean') trTM.c.min = true; // inject the files as minified versions
   trTM.c.nonce = cfg.nonce || ''; // Nonce value for the file injections
   trTM.c.useListener = cfg.useListener || false; // Use an event listener to check the consent (true). If it is false, a timer will be used (default) to check the consent
-  trTM.c.gtmID = cfg.gtmID || ''; // your GTM Container ID - leave it empty if you don't want to the Google Tag Manager
-  trTM.c.gtmURL = cfg.gtmURL || ''; // If you use an own url to the GTM (e.g. using the serverside Google Tag Manager), you can set your URL here. Leave it blank if you don't know what this means.
-  trTM.c.gtmJS = cfg.gtmJS || ''; // Possibility to give the GTM JS direct as Javascript content, but Base64-encoded. In this case, no external JS script will be loaded.
+  trTM.c.gtm_use = false;
+  for (var k in trTM.c.gtm) {
+    trTM.c.gtm_use = true;
+    trTM.c.gtm[k].env = trTM.c.gtm[k].env || ''; // Environment string (leave it blank you you don't know, what it is)
+    trTM.c.gtm[k].gtmURL = trTM.c.gtm[k].gtmURL || ''; // If you use an own url to the GTM (e.g. using the serverside Google Tag Manager), you can set your URL here. Leave it blank if you don't know what this means.
+    trTM.c.gtm[k].gtmJS = trTM.c.gtm[k].gtmJS || ''; // Possibility to give the GTM JS direct as Javascript content, but Base64-encoded. In this case, no external JS script will be loaded.
+  }
   trTM.c.gtmPurposes = cfg.gtmPurposes || ''; // The purpose(s) that must be agreed to in order to activate the GTM (comma-separated), e.g. 'Functional'
   trTM.c.gtmServices = cfg.gtmServices || ''; // The services(s) that must be agreed to in order to activate the GTM (comma-separated), e.g. 'Google Tag Manager'
   trTM.c.gtmVendors = cfg.gtmVendors || ''; // The vendors(s) that must be agreed to in order to activate the GTM (comma-separated), e.g. 'Google Inc'
-  trTM.c.tmID = trTM.c.gtmID ? trTM.c.gtmID.substring(4) : ''; // Google Tag Manager Container ID shortened
   trTM.c.gdl = cfg.gdl || 'dataLayer'; // Name of GTM dataLayer | Default:'dataLayer'
-  trTM.c.env = cfg.env || ''; // Environment string (leave it blank you you don't know, what it is)
+  trTM.c.gdlClear = cfg.gdlClear || false; // Clear the GTM dataLayer before loading the GTM
+  trTM.c.gdlRepeat = cfg.gdlRepeat || []; // Repeat the GTM dataLayer events which are specified in this array (after loading the GTM). Use * as placeholder
   if (typeof trTM.c.dlStateEvents!='boolean') trTM.c.dlStateEvents = true; // Fire GTM dataLayer Events for DOMloaded and PAGEready
   trTM.c.gtag = cfg.gtag || null; // GTAG(s) with config - set it to null if you don't want to use GTAG functionallity, example: cfg.gtag = { 'G-xxx': { debug_mode:true, send_page_view:false } };
   trTM.c.gtagPurposes = cfg.gtagPurposes || ''; // The purpose(s) that must be agreed to in order to activate the GTAG (comma-separated), e.g. 'Marketing'
@@ -123,7 +130,7 @@ if (typeof trTM.f.config!='function') trTM.f.config = function (cfg) {
         var key = attr;
         if (attr.indexOf('=')>=0) { key = attr.substr(0,attr.indexOf('=')); }
         var val = '';
-        if (attr.indexOf('=')>=0) { val = attr.substr(attr.indexOf('=')+1,).replace(/["']/gm,''); }
+        if (attr.indexOf('=')>=0) { val = attr.substr(attr.indexOf('=')+1).replace(/["']/gm,''); }
         tmCEarr[i] = name;
         trTM.c.consent.consent_event_attr[name] = {};
         trTM.c.consent.consent_event_attr[name][key] = val;
@@ -152,16 +159,13 @@ if (typeof trTM.f.config!='function') trTM.f.config = function (cfg) {
 
 /**
  * Function with the logic for the initial gtag. Will be called as window.gtag
- * @property {function} trTM.f.gtag
- * Usage: window.gtag = window.gtag || trTM.f.gtag;
+ * @property {function} gtag
+ * Usage: gtag(arguments);
  */
-if (typeof trTM.f.gtag!='function') trTM.f.gtag = function () {
-  var args = arguments;
-  window[trTM.c.gdl] = window[trTM.c.gdl] || [];
-  window[trTM.c.gdl].push(args);
+window.gtag = window.gtag || function () {
+  //window[trTM.c.gdl] = window[trTM.c.gdl] || [];
+  window[trTM.c.gdl].push(arguments);
 };
-// Copy it as window.gtag function
-window.gtag = window.gtag || trTM.f.gtag;
 
 /**
  * Function to gets the value of a C.
@@ -205,7 +209,7 @@ trTM.f.evLstn = trTM.f.evLstn || function(el, ev, ft) {
  * Usage: trTM.f.load_cc('cookiebot');
  */
 trTM.f.load_cc = trTM.f.load_cc || function (cmp, callback) {
-  var d=document, s='script', t=d.createElement(s), m=trTM.c.min?'.min':'', p=trTM.c.path;if(p.substring(p.length - 1)!='/')p+='/';
+  var d=document, t=d.createElement('script'), m=trTM.c.min?'.min':'', p=trTM.c.path||''; if(p.length>0 && p.substring(p.length-1)!='/')p+='/';
   t.src = p + 'cmp/cc_' + trTM.f.strclean(cmp) + m + '.js';
   if (trTM.c.nonce) t.nonce = trTM.c.nonce;
   t.onreadystatechange=callback;
@@ -270,6 +274,7 @@ if (typeof trTM.f.run_cc!='function') trTM.f.run_cc = function (a) {
   if (!trTM.d.config) { trTM.f.log('e4', null); return false; }
   if (typeof a!='string' || (a!='init'&&a!='update')) { trTm.f.log('e5',{a:a}); return false; }
   // check consent
+  if (typeof trTM.f.consent_check!='function') { trTm.f.log('e14',{a:a}); return false; }
   var cc = trTM.f.consent_check(a);
   if (!cc) {
     trTM.f.log('m8', null);
@@ -277,11 +282,7 @@ if (typeof trTM.f.run_cc!='function') trTM.f.run_cc = function (a) {
   }
   // set consent for GTM
   window[trTM.c.gdl] = window[trTM.c.gdl] || [];
-  if (trTM.c.tmID && trTM.f.chelp(trTM.c.gtmPurposes,trTM.d.consent.purposes) && trTM.f.chelp(trTM.c.gtmServices,trTM.d.consent.services) && trTM.f.chelp(trTM.c.gtmVendors,trTM.d.consent.vendors)) trTM.d.consent.gtmConsent = true;
-  // gtm special consent stuff
-  if (trTM.c.tmID) {
-    // add some cool stuff with setDefaultConsentState und updateConsentState
-  }
+  if (trTM.c.gtm_use && trTM.f.chelp(trTM.c.gtmPurposes,trTM.d.consent.purposes) && trTM.f.chelp(trTM.c.gtmServices,trTM.d.consent.services) && trTM.f.chelp(trTM.c.gtmVendors,trTM.d.consent.vendors)) trTM.d.consent.gtmConsent = true;
   // set consent for GTAG
   if (trTM.c.gtag && trTM.f.chelp(trTM.c.gtagPurposes,trTM.d.consent.purposes) && trTM.f.chelp(trTM.c.gtagServices,trTM.d.consent.services) && trTM.f.chelp(trTM.c.gtagVendors,trTM.d.consent.vendors)) trTM.d.consent.gtagConsent = true;
   // transform consent to gtag format
@@ -314,7 +315,11 @@ if (typeof trTM.f.run_cc!='function') trTM.f.run_cc = function (a) {
       if (ps) s = 'granted';
       trTM.d.cm[k] = s;
     }
-    if (a=='update' && typeof trTM.d.cm=='object') gtag('consent', 'update', trTM.d.cm);
+    if (a=='update') {
+      var gcm = trTM.d.cm || {};
+      gtag('consent', 'update', gcm);
+      trTM.f.fire({ event:'trTM_consent_update', cmp:JSON.parse(JSON.stringify(trTM.d.consent)), gcm:JSON.parse(JSON.stringify(gcm)), gtag:false});
+    }
   }
   if (typeof trTM.f.consent_callback=='function') trTM.f.consent_callback(a);
   trTM.f.log('m3', trTM.d.consent);
@@ -328,29 +333,23 @@ if (typeof trTM.f.run_cc!='function') trTM.f.run_cc = function (a) {
  * @param {object} d - the (HTML) document object, usually: document
  * @param {string} i - Google Tag manager Container ID without the "GTM-", e.g. XYZ123
  * @param {string} l - name of the GTM dataLayer, usually: 'dataLayer'
- * @param {string} e - an environment string, e.g. '&gtm_auth=abc123def567&gtm_preview=env-1&gtm_cookies_win=x' - leave it empty if not needed
+ * @param {string} o - object with further GTM settings, like environment string, GTM URL and GTM code
  * Usage: trTM.f.gtm_load(window,document,'XYZ123','dataLayer','&gtm_auth=abc123def567&gtm_preview=env-1&gtm_cookies_win=x');
  */
-if (typeof trTM.f.gtm_load!='function') trTM.f.gtm_load = function (w, d, i, l, e) {
+if (typeof trTM.f.gtm_load!='function') trTM.f.gtm_load = function (w, d, i, l, o) {
   if (!trTM.d.config) { trTM.f.log('e7', null); return; }
   if (!trTM.d.init) {
-    trTM.d.init = true;
-    if (!trTM.c.gtag || typeof trTM.d.consent.gtagConsent!='boolean' || !trTM.d.consent.gtagConsent) {
-      var o = {'event':'g'+'tm.js','initTime':new Date().getTime(),'gtm.start':new Date().getTime()};
-      if (trTM.c.nonce) o.nonce = trTM.c.nonce;
-      trTM.d.dl.push(o);
-      /*w[l]=w[l]||[];*/ w[l].push(o);
-    }
-    var s = 'script', f = d.getElementsByTagName(s)[0], j = d.createElement(s);
-    j.id = 'trTM_tm'; j.async = true;
-    if (trTM.c.nonce) j.nonce = trTM.c.nonce;
-    if (trTM.c.gtmJS) {
-      j.innerHTML = atob(trTM.c.gtmJS);
+    var s = 'script', f = d.getElementsByTagName(s)[0], n = d.createElement(s);
+    n.id = 'trTM_tm'; n.async = true;
+    if (trTM.c.nonce) n.nonce = trTM.c.nonce;
+    if (o.gtmJS) {
+      n.innerHTML = atob(o.gtmJS);
     } else {
-      var u = trTM.c.gtmURL || 'https://www.goo'+'glet'+'agmanager.com/g'+'tm.js';
-      j.src = u + '?id=G'+'TM-'+i + '&l='+l+e;
+      var a = o.gtmURL || 'https://www.goo'+'glet'+'agmanager.com/gtm.js';
+      var e = o.env || '';
+      n.src = a + '?id='+i + '&l='+l+e;
     }
-    f.parentNode.insertBefore(j, f);
+    f.parentNode.insertBefore(n, f);
   }
 };
 
@@ -363,27 +362,9 @@ if (typeof trTM.f.gtm_load!='function') trTM.f.gtm_load = function (w, d, i, l, 
 if (typeof trTM.f.call_cc!='function') trTM.f.call_cc = function () {
   var consent = trTM.f.run_cc('init');
   if (!consent) return false;
-  if (!trTM.d.fired) trTM.f.inject();
+  if (typeof trTM.d.timer!='undefined') { clearInterval(trTM.d.timer); delete trTM.d.timer; }
+  if (!trTM.d.fired) return trTM.f.inject();
   return true;
-};
-
-/**
- * Function to set a Timer for a periodically consent check
- * @property {function} trTM.f.consent_timer_listener
- * Usage: trTM.f.consent_timer_listener();
- */
-if (typeof trTM.f.consent_timer_listener!='function') trTM.f.consent_timer_listener = function () {
-  var consent = trTM.f.call_cc();
-  if (consent && typeof trTM.d.timer!='undefined') { clearInterval(trTM.d.timer); delete trTM.d.timer; }
-};
-
-/**
- * Function to check whether consent is available, trough an event listener function
- * @property {function} trTM.f.consent_listener
- * Usage: trTM.f.consent_event_listener();
- */
-if (typeof trTM.f.consent_event_listener!='function') trTM.f.consent_event_listener = function () {
-  if (!trTM.f.call_cc()) { trTM.d.timer = setInterval(trTM.f.consent_timer_listener, 100); }
 };
 
 /**
@@ -392,23 +373,7 @@ if (typeof trTM.f.consent_event_listener!='function') trTM.f.consent_event_liste
  * Usage: trTM.f.consent_listener();
  */
 if (typeof trTM.f.consent_listener!='function') trTM.f.consent_listener = function () {
-  if (!trTM.c.useListener) trTM.d.timer = setInterval(trTM.f.consent_timer_listener, 100);
-};
-
-/**
- * Function to call events from a container
- * @property {function} trTM.f.ev_call
- * @param {string} t - the fct container name, e.g. 'dl' for dom loaded
- * @param {boolean} d - set it to true, if the function shell be deleted after calling it
- * Usage: trTM.f.ev_call('dl',true);
- */
-trTM.f.ev_call = trTM.f.ev_call || function(t,d) {
-  if (typeof t!='string' || !t || typeof trTM.f[t]!='object') return;
-  for (var fct in trTM.f[t]) {
-    if (typeof trTM.f[t][fct]!='function') continue;
-    trTM.f[t][fct]();
-    if (d) delete trTM.f[t][fct];
-  }
+  if (!trTM.c.useListener) trTM.d.timer = setInterval(trTM.f.call_cc, 1000);
 };
 
 /**
@@ -418,7 +383,6 @@ trTM.f.ev_call = trTM.f.ev_call || function(t,d) {
  */
 trTM.f.domready = trTM.f.domready || function() {
   if (!trTM.d.dom_ready) {
-    trTM.f.ev_call('dl',true);
     if (trTM.c.dlStateEvents) trTM.f.fire({ event:'vDOMready', gtag:false });
   }
   trTM.d.dom_ready = true;
@@ -431,7 +395,6 @@ trTM.f.domready = trTM.f.domready || function() {
  */
 trTM.f.pageready = trTM.f.pageready || function() {
   if (!trTM.d.page_ready) {
-    trTM.f.ev_call('pl',true);
     if (trTM.c.dlStateEvents) trTM.f.fire({ event:'vPAGEready', gtag:false });
   }
   trTM.d.page_ready = true;
@@ -444,19 +407,21 @@ trTM.f.pageready = trTM.f.pageready || function() {
  */
 if (typeof trTM.f.inject!='function') trTM.f.inject = function () {
   if (!trTM.d.config) { trTM.f.log('e8', null); return false; }
-  var consent = trTM.f.run_cc('init');
-  if (!consent) {
-    trTM.f.log('m4', null);
-    trTM.f.consent_listener();
+  if (typeof trTM.d.consent!='object' || typeof trTM.d.consent.hasResponse!='boolean' || !trTM.d.consent.hasResponse) {
+    trTM.f.log('e13', null);
     return false;
   }
   if (!trTM.d.fired) {
     // Initiate gtag
-    if ((trTM.c.gtag && trTM.d.consent.gtagConsent) || (trTM.c.tmID && trTM.d.consent.gtmConsent)) {
+    if ((trTM.c.gtag && trTM.d.consent.gtagConsent) || (trTM.c.gtm_use && trTM.d.consent.gtmConsent)) {
       var tmpDL = window[trTM.c.gdl] || [];
-      window[trTM.c.gdl] = [];
-      if (trTM.c.consent.cm && typeof trTM.d.cm=='object') gtag('consent', 'default', trTM.d.cm);
-      trTM.f.fire({ event:'trTM_consent_init', cmp:trTM.d.consent, gtag:false });
+      if (trTM.c.gdlClear) window[trTM.c.gdl] = [];
+      var gcm = {};
+      if (trTM.c.consent.cm && typeof trTM.d.cm=='object') {
+        gtag('consent', 'default', trTM.d.cm);
+        gcm = trTM.d.cm;
+      }
+      trTM.f.fire({ event:'trTM_consent_init', cmp:trTM.d.consent, gcm:gcm, gtag:false });
     }
     // Inject GTAG
     if (trTM.c.gtag && trTM.d.consent.gtagConsent) {
@@ -464,7 +429,7 @@ if (typeof trTM.f.inject!='function') trTM.f.inject = function () {
       for (var k in trTM.c.gtag) { gtags.push(k); }
       if (gtags.length>0) {
         var scr = document.createElement('script');
-        scr.src = 'https://www.googletagmanager.com/gtag/js?id=' + gtags[0];
+        scr.src = 'https://www.goo'+'glet'+'agman'+'ager.com/gtag/js?id=' + gtags[0];
         scr.type = 'text/javascript';
         scr.async = true;
         document.head.appendChild(scr);
@@ -472,41 +437,46 @@ if (typeof trTM.f.inject!='function') trTM.f.inject = function () {
         for (var k in trTM.c.gtag) {
           var gc = trTM.c.gtag[k];
           if (gc) { gtag('config', k, gc); } else { gtag('config', k); };
-          /* deprecated: UA tracker create */ if (k.substring(0,3)=='UA-' && typeof ga=='function') ga('create', k, gc ? gc : 'auto');
-          /*if (gc && (typeof gc.send_page_view=='undefined' || (typeof gc.send_page_view=='boolean' && gc.send_page_view))) {
-            gtag('event', 'page_view', {
-               send_to: k
-              ,page_title: document.title
-              ,page_location: document.location.href
-            });
-          }*/
         }
         if (typeof trTM.f.gtag_inject_callback=='function') trTM.f.gtag_inject_callback();
         trTM.f.log('m5', trTM.c.gtag);
       }
     }
     // Inject GTM
-    if (trTM.c.tmID && trTM.d.consent.gtmConsent) {
+    if (trTM.c.gtm_use && trTM.d.consent.gtmConsent) {
       var latDL = [];
       if (tmpDL.length>0) {
         for (var i=0; i<tmpDL.length; i++) {
-          if (typeof tmpDL[i]=='object' && (typeof tmpDL[i].length=='number' || typeof tmpDL[i].event!='string')) {
-            trTM.f.fire(tmpDL[i]);
-            continue;
+          if (typeof tmpDL[i]=='object' && typeof tmpDL[i].length!='number') {
+            var ev = JSON.parse(JSON.stringify(tmpDL[i]));
+            if (typeof ev['gtm.uniqueEventId']!='undefined') delete ev['gtm.uniqueEventId'];
+            latDL.push(ev);
           }
-          var ev = JSON.parse(JSON.stringify(tmpDL[i]));
-          if (typeof ev['gtm.uniqueEventId']!='undefined') delete ev['gtm.uniqueEventId'];
-          /*if (ev.event.substr(0,4)=='gtm.') {
-            trTM.f.fire(ev);
-          } else { trTM.d.dl.push(ev); latDL.push(ev); }*/
         }
       }
+      // Set GTM Start Push
+      if (!trTM.c.gtag || typeof trTM.d.consent.gtagConsent!='boolean' || !trTM.d.consent.gtagConsent) {
+        var o = {'event':'gtm.js','initTime':new Date().getTime(),'gtm.start':new Date().getTime()};
+        if (trTM.c.nonce) o.nonce = trTM.c.nonce;
+        trTM.d.dl.push(o);
+        window[trTM.c.gdl].push(o);
+      }
       // Inject GTM
-      trTM.f.gtm_load(window,document,trTM.c.tmID,trTM.c.gdl,trTM.c.env);
-      /*for (var i=0; i<latDL.length; i++) {
-        trTM.f.fire(tmpDL[i]);
-      }*/
-      //window[trTM.c.gdl] = window[trTM.c.gdl] || [];
+      for (var k in trTM.c.gtm) {
+        trTM.f.gtm_load(window,document,k,trTM.c.gdl,trTM.c.gtm[k]);
+      }
+      if (trTM.c.gdlRepeat.length>0) {
+        for (var i=0; i<latDL.length; i++) {
+          var fire = false;
+          for (var j=0; j<trTM.c.gdlRepeat.length; j++) {
+            var pattern = new RegExp( trTM.c.gdlRepeat[j].replace(/\./g, '\\.').replace(/\*/g, '.*') , 'i');
+            if (typeof latDL[i].event=='string' && pattern.test(latDL[i].event)) { trTM.f.fire(latDL[i]); }
+          }
+        }
+      }
+      // Set init to true
+      trTM.d.init = true;
+      // Callback
       if (typeof trTM.f.inject_callback=='function') trTM.f.inject_callback();
       trTM.f.log('m6', null);
     }
@@ -541,9 +511,9 @@ trTM.f.init = function () {
   trTM.f.config(trTM.c);
   // Inject the trTM
   if (trTM.c.cmp) {
-    trTM.f.load_cc('consentmanager', trTM.f.inject);
+    trTM.f.load_cc(trTM.c.cmp, trTM.f.consent_listener);
   } else {
-    trTM.f.inject();
+    trTM.f.consent_listener();
   }
 };
 
@@ -561,20 +531,12 @@ if (typeof trTM.f.fire!='function') trTM.f.fire = function (o) {
     if (typeof trTM.c.consent.consent_event_attr[obj.event]=='object') {
       for (k in trTM.c.consent.consent_event_attr[obj.event]) {
         if (typeof obj[k]!='undefined') {
-          if (!trTM.c.consent.consent_event_attr[obj.event][k] || obj[k]==trTM.c.consent.consent_event_attr[obj.event][k]) {
-            trTM.f.run_cc('update');
-            trTM.f.fire({ event:'trTM_consent_update', cmp:JSON.parse(JSON.stringify(trTM.d.consent)), gtag:false, cmp_obj:obj});
-            //return;
-          }
+          if (!trTM.c.consent.consent_event_attr[obj.event][k] || obj[k]==trTM.c.consent.consent_event_attr[obj.event][k]) trTM.f.run_cc('update');
         }
       }
-    } else {
-      trTM.f.run_cc('update');
-      trTM.f.fire({ event:'trTM_consent_update', cmp:JSON.parse(JSON.stringify(trTM.d.consent)), gtag:false, cmp_obj:obj});
-      //return;
-    }
+    } else { trTM.f.run_cc('update'); }
   }
-  if (trTM.c.tmID && trTM.d.consent.gtmConsent && (typeof obj.gtm!='boolean' || obj.gtm)) {
+  if (trTM.c.gtm_use && trTM.d.consent.gtmConsent && (typeof obj.gtm!='boolean' || obj.gtm)) {
     trTM.d.dl.push(obj); window[trTM.c.gdl].push(obj);
   }
   if (trTM.c.gtag && trTM.d.consent.gtagConsent && (typeof obj.event=='string' && obj.event) && (typeof obj.gtag!='boolean' || obj.gtag)) {
