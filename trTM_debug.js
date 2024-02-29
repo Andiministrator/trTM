@@ -28,10 +28,11 @@ trTM.d.logmap = trTM.d.logmap || {
   ,e10: { type:'err', msg:'trTM.f.consent_check called, but action argument (a) is not valid' }
   ,e11: { type:'err', msg:'trTM.f.addEvListener called, but one argument is not valid' }
   ,e12: { type:'err', msg:'trTM.f.addEvListener called, but there is a problem with with addEventListener' }
+  ,e13: { type:'err', msg:'call of function trTM.f.tm_inject, but consent not available' }
+  ,e14: { type:'err', msg:'call of function trTM.f.run_cc, but consent_check function not available' }
   ,m1:  { type:'msg', msg:'trTM.f.config was successful set' }
   ,m2:  { type:'msg', msg:'trTM.f.consent_check has checked the consent and consent is available now' }
   ,m3:  { type:'msg', msg:'Consent Setup complete' }
-  ,m4:  { type:'msg', msg:'call of function trTM.f.tm_inject, but consent not (yet) available' }
   ,m5:  { type:'msg', msg:'GTAG initial call injected' }
   ,m6:  { type:'msg', msg:'GTM initial call injected' }
   ,m7:  { type:'msg', msg:'Event fired' }
