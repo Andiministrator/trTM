@@ -2,8 +2,8 @@
 
 /**
  * Global implementation script/object for Google GTAG and Tag Manager, depending on the user consent.
- * @version 1.5
- * @lastupdate 29.02.2024 by Andi Petzoldt <andi@tracking-garden.com>
+ * @version 1.5.1
+ * @lastupdate 12.03.2024 by Andi Petzoldt <andi@tracking-garden.com>
  * @repository https://github.com/Andiministrator/trTM/
  * @author Andi Petzoldt <andi@petzoldt.net>
  * @documentation see README.md or https://github.com/Andiministrator/trTM/
@@ -35,7 +35,7 @@
 window.trTM = window.trTM || {}; // Tag Manager Global Object
 trTM.c = trTM.c || {}; // TM Configuration Settings Object
 trTM.d = trTM.d || {}; // TM Data Object
-trTM.d.version = '1.5'; // trTM Version
+trTM.d.version = '1.5.1'; // trTM Version
 trTM.d.config = trTM.d.config || false; // is TM is configured?
 trTM.d.init = trTM.d.init || false; // is TM Initialisation complete?
 trTM.d.fired = trTM.d.fired || false; // is TM active (was fired)
@@ -194,7 +194,9 @@ trTM.f.gc = trTM.f.gc || function (cname) {
  * Usage: trTM.f.evLstn( document.querySelector('div.button'), 'mousedown', click_fct );
  */
 trTM.f.evLstn = trTM.f.evLstn || function(el, ev, ft) {
-  if(typeof el!='object' && !el && typeof ev!='string' && typeof ft!='function') {
+  if (typeof el=='string' && el=='window') el = window;
+  if (typeof el=='string' && el=='document') el = document;
+  if(typeof el!='object' || !el || typeof ev!='string' || typeof ft!='function') {
     trTM.f.log('e11', el);
     return;
   }
@@ -318,6 +320,7 @@ if (typeof trTM.f.run_cc!='function') trTM.f.run_cc = function (a) {
     if (a=='update') {
       var gcm = trTM.d.cm || {};
       gtag('consent', 'update', gcm);
+      if (!trTM.d.fired) return trTM.f.inject();
       trTM.f.fire({ event:'trTM_consent_update', cmp:JSON.parse(JSON.stringify(trTM.d.consent)), gcm:JSON.parse(JSON.stringify(gcm)), gtag:false});
     }
   }
@@ -401,6 +404,84 @@ trTM.f.pageready = trTM.f.pageready || function() {
 };
 
 /**
+ * Gets back a (predefined) value from window, document or body
+ * @usage Gets back a (predefined) value from window, document or body
+ * @lastupdate 10.03.2024 by Andi Petzoldt <andi@tracking-garden.com>
+ * @author Andi Petzoldt <andi@tracking-garden.com>
+ * @property {function} trTM.f.getVal
+ * Usage: trTM.f.getVal();
+ */
+trTM.f.getVal = trTM.f.getVal || function (o, v) {
+  if (typeof o!='string' || typeof v!='string' || !v.match(/[a-z]+/i)) return undefined;
+  switch (o) {
+    case 'w': return window[v];
+    case 'd': return document[v];
+    case 'b': return document.body[v];
+    case 's': return document.getElementsByTagName("html")[0].scrollTop || 0;
+  }
+  return undefined;
+};
+
+/**
+ * Adds an element Listener to DOM elements
+ * @usage Adds an element Listener to DOM elements
+ * @lastupdate 10.03.2024 by Andi Petzoldt <andi@tracking-garden.com>
+ * @author Andi Petzoldt <andi@tracking-garden.com>
+ * @property {function} trTM.f.addElLst
+ * @param {string} s - Selector for the DOM elements, e.g. 'a.menu'
+ * @param {string} e - Event to add, e.g. 'mousedown'
+ * @param {function} f - Function to add
+ * Usage: trTM.f.addElLst('a', 'mousedown', myClickFct);
+ */
+trTM.f.addElLst = trTM.f.addElLst || function (s, e, f) {
+  if (typeof s!='string' || typeof e!='string' || typeof f!='function') return;
+  var nodes = document.querySelectorAll(s);
+  if (typeof nodes!='object' || !nodes || nodes.length==0) return;
+  for (var i=0; i<nodes.length; i++) {
+    //trTM.f.evLstn(nodes[i], e, function(p){f(p);});
+    try {
+      nodes[i].addEventListener(e,function(p){
+        // Get parent ID
+        var pid = '', cElID = this;
+        while (cElID && cElID.parentElement && !cElID.id) { cElID = cElID.parentElement; if (cElID.id) { pid = cElID.id; if (typeof cElID.nodeName=='string') pid = cElID.nodeName.toLowerCase() + ':' + pid; } }
+        // Get parent Class
+        var pclass = '', cElClass = this;
+        while (cElClass && cElClass.parentElement && !cElClass.getAttribute('class')) { cElClass = cElClass.parentElement; if (cElClass.getAttribute('class')) { pclass = cElClass.getAttribute('class'); if (typeof cElClass.nodeName=='string') pclass = cElClass.nodeName.toLowerCase() + ':' + pclass; } }
+        // Define Event Object
+        var o = {
+          target: this.target ? this.target : '',
+          parentID: pid,
+          parentClass: pclass,
+          id: this.id ? this.id : '',
+          name: typeof this.getAttribute('name')=='string' ? this.getAttribute('name') : '',
+          class: typeof this.getAttribute('class')=='string' ? this.getAttribute('class') : '',
+          href: this.href ? this.href : '',
+          src: this.src ? this.src : '',
+          action: this.action ? this.action : '',
+          html: this.outerHTML ? JSON.parse(JSON.stringify(this.outerHTML)) : null,
+          text: this.outerText ? JSON.parse(JSON.stringify(this.outerText)) : ''
+        };
+        // Send Event Object
+        f(o);
+      });
+    } catch(e) { trTM.f.log('e12', nodes[i]); }
+  }
+};
+
+/**
+ * Just a helper function for new RegExp, because this is not available in GTM Custom Tamplate
+ * @usage Creates a new RegExp
+ * @lastupdate 12.03.2024 by Andi Petzoldt <andi@tracking-garden.com>
+ * @author Andi Petzoldt <andi@tracking-garden.com>
+ * @property {function} trTM.f.regEx
+ * @param {string} r - Regex String, that is used for new Regex
+ * Usage: trTM.f.regEx('[0-9]+');
+ */
+trTM.f.regEx = trTM.f.regEx || function (r) {
+  return new RegExp(r);
+};
+
+/**
  * Function to inject the GTM and/or GTAG into the website
  * @property {function} trTM.f.inject
  * Usage: trTM.f.inject();
@@ -423,6 +504,7 @@ if (typeof trTM.f.inject!='function') trTM.f.inject = function () {
       }
       trTM.f.fire({ event:'trTM_consent_init', cmp:trTM.d.consent, gcm:gcm, gtag:false });
     }
+    var set_fired = false;
     // Inject GTAG
     if (trTM.c.gtag && trTM.d.consent.gtagConsent) {
       var gtags = [];
@@ -441,6 +523,7 @@ if (typeof trTM.f.inject!='function') trTM.f.inject = function () {
         if (typeof trTM.f.gtag_inject_callback=='function') trTM.f.gtag_inject_callback();
         trTM.f.log('m5', trTM.c.gtag);
       }
+      set_fired = true;
     }
     // Inject GTM
     if (trTM.c.gtm_use && trTM.d.consent.gtmConsent) {
@@ -474,13 +557,15 @@ if (typeof trTM.f.inject!='function') trTM.f.inject = function () {
           }
         }
       }
-      // Set init to true
-      trTM.d.init = true;
       // Callback
       if (typeof trTM.f.inject_callback=='function') trTM.f.inject_callback();
       trTM.f.log('m6', null);
+      set_fired = true;
     }
-    trTM.d.fired = true;
+    if (set_fired) {
+      trTM.d.fired = true;
+      trTM.d.init = true;
+    }
     // DOMready call
     var s = document.readyState;
     if (s=='interactive' || s=='loaded' || s=='complete') {
@@ -526,6 +611,7 @@ trTM.f.init = function () {
 if (typeof trTM.f.fire!='function') trTM.f.fire = function (o) {
   if (typeof o!='object') { trTM.f.log('e9',{o:typeof o}); return; }
   var obj = JSON.parse(JSON.stringify(o));
+  if (typeof obj.eventModel=='object' && obj.eventModel) return;
   window[trTM.c.gdl] = window[trTM.c.gdl] || [];
   if (trTM.c.consent.consent_events && typeof obj.event=='string' && trTM.c.consent.consent_events.indexOf(','+obj.event+',')>=0) {
     if (typeof trTM.c.consent.consent_event_attr[obj.event]=='object') {
@@ -537,7 +623,14 @@ if (typeof trTM.f.fire!='function') trTM.f.fire = function (o) {
     } else { trTM.f.run_cc('update'); }
   }
   if (trTM.c.gtm_use && trTM.d.consent.gtmConsent && (typeof obj.gtm!='boolean' || obj.gtm)) {
-    trTM.d.dl.push(obj); window[trTM.c.gdl].push(obj);
+    var gtmparams = JSON.parse(JSON.stringify(obj));
+    if (typeof gtmparams['gtm.uniqueEventId']!='undefined') delete gtmparams['gtm.uniqueEventId'];
+    if (typeof gtmparams.gtm!='undefined') delete gtmparams.gtm;
+    if (typeof gtmparams.gtag!='undefined') delete gtmparams.gtag;
+    var gtmobj = JSON.parse(JSON.stringify(obj));
+    gtmobj.trTMparams = gtmparams;
+    gtmobj.eventModel = null;
+    trTM.d.dl.push(gtmobj); window[trTM.c.gdl].push(gtmobj);
   }
   if (trTM.c.gtag && trTM.d.consent.gtagConsent && (typeof obj.event=='string' && obj.event) && (typeof obj.gtag!='boolean' || obj.gtag)) {
     if (typeof obj.gtagID=='string' && obj.gtagID) {
