@@ -823,6 +823,13 @@ Feel free to contact me if you found problems or improvements:
 
 ## Changelog ##
 
+- Version 1.5.1, *12.03.2024*
+  - Added Function for adding an Event Listener using GTM Custom Template
+  - Modified evLstn Function for the point above
+  - Added Function to get the window or document object into a GTM Custom Template
+  - Added Function to create a new RegExp within a GTM Custom Template
+  - Modified Fire Function to add one Object with all parameters (for easy read it in GTM Custom Template) and to avoid multiple event fires
+
 - Version 1.5, *29.02.2024*
   - Usercentrics flag for nonEU users added
   - min directory removed
