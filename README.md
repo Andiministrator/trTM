@@ -810,6 +810,9 @@ Feel free to contact me if you found problems or improvements:
 
 ## Changelog ##
 
+- Version 1.6.1, *20.03.2024*
+  - Attributes for GTM event listener added
+
 - Version 1.6, *19.03.2024*
   - Re-Arrangement of Function order (just their order in the code)
   - Added Function for Timer (to use it in GTM Cuistom Template)

@@ -3,7 +3,7 @@
 
 /**
  * Global implementation script/object for Google GTAG and Tag Manager, depending on the user consent.
- * @version 1.6
+ * @version 1.6.1
  * @lastupdate 19.03.2024 by Andi Petzoldt <andi@tracking-garden.com>
  * @repository https://github.com/Andiministrator/trTM/
  * @author Andi Petzoldt <andi@petzoldt.net>
@@ -39,7 +39,7 @@
 window.trTM = window.trTM || {}; // Tag Manager Global Object
 trTM.c = trTM.c || {}; // TM Configuration Settings Object
 trTM.d = trTM.d || {}; // TM Data Object
-trTM.d.version = '1.6'; // trTM Version
+trTM.d.version = '1.6.1'; // trTM Version
 trTM.d.f = trTM.d.f || []; // Array for temp. Fire Events
 trTM.d.config = trTM.d.config || false; // is TM is configured?
 trTM.d.init = trTM.d.init || false; // is TM Initialisation complete?
@@ -568,14 +568,37 @@ trTM.f.getVal = trTM.f.getVal || function (o, v) {
 trTM.f.elLst = trTM.f.elLst || function (o, e, f) {
   try {
     o.addEventListener(e,function(p){
-      // Get parent ID
+      // Get tagName and parent ID
+      var tn = this.tagName.toLowerCase();
       var pid = '', cElID = this;
       while (cElID && cElID.parentElement && !cElID.id) { cElID = cElID.parentElement; if (cElID.id) { pid = cElID.id; if (typeof cElID.nodeName=='string') pid = cElID.nodeName.toLowerCase() + ':' + pid; } }
       // Get parent Class
       var pclass = '', cElClass = this;
       while (cElClass && cElClass.parentElement && !cElClass.getAttribute('class')) { cElClass = cElClass.parentElement; if (cElClass.getAttribute('class')) { pclass = cElClass.getAttribute('class'); if (typeof cElClass.nodeName=='string') pclass = cElClass.nodeName.toLowerCase() + ':' + pclass; } }
+      // Get Parent Form
+      var pform = null, pos = null;
+      if (tn=='input' || tn=='select' || tn=='textarea') {
+        var cElForm = this;
+        while (cElForm && cElForm.parentElement && cElForm.tagName.toLowerCase()!='form') {
+          cElForm = cElForm.parentElement;
+          if (cElForm.tagName.toLowerCase()=='form') {
+            pform = {
+              id: cElForm.id,
+              class: cElForm.getAttribute('class'),
+              name: cElForm.getAttribute('name'),
+              action: cElForm.action,
+              elements: cElForm.elements.length
+            };
+          }
+        }
+        if (pform && cElForm.tagName.toLowerCase()=='form' && cElForm.contains(this)) pos = Array.prototype.indexOf.call(cElForm.elements, this) + 1;
+      }
+      // Count elements
+      var elct = 0;
+      if (typeof this.elements=='object' && typeof this.elements.length=='number') elct = this.elements.length;
       // Define Event Object
       var obj = {
+        tagName: tn,
         target: this.target ? this.target : '',
         parentID: pid,
         parentClass: pclass,
@@ -585,9 +608,15 @@ trTM.f.elLst = trTM.f.elLst || function (o, e, f) {
         href: this.href ? this.href : '',
         src: this.src ? this.src : '',
         action: this.action ? this.action : '',
-        html: this.outerHTML ? JSON.parse(JSON.stringify(this.outerHTML)) : null,
-        text: this.outerText ? JSON.parse(JSON.stringify(this.outerText)) : ''
+        type: this.type ? this.type : '',
+        elements: elct,
+        position: pos,
+        form: pform,
+        html: this.outerHTML ? this.outerHTML.toString() : '',
+        text: this.outerText ? this.outerText.toString() : ''
       };
+      if (obj.html.length>512) obj.html = obj.html.slice(0, 509) + '...';
+      if (obj.text.length>512) obj.text = obj.text.slice(0, 509) + '...';
       // Send Event Object
       f(obj);
     });
