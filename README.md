@@ -49,12 +49,13 @@ Before you include the code to your website (template), you need to upload the n
 <!-- trTM Start -->
 <script type="text/javascript">
 (function(c){
-var w=window,d=document;w.trTM=w.trTM||{};w.trTM.c=c;var s='script',t=d.createElement(s),m=c.min?'.min':'',p=c.path;if(p.length>0&&p.substring(p.length-1)!='/')p+='/';t.src=c.path+'trTM'+m+'.js';t.async=true;d.head.appendChild(t);
+var w=window,d=document;w.trTM=w.trTM||{};trTM.d=trTM.d||{};trTM.d.f=trTM.d.f||[];trTM.f=trTM.f||{};trTM.f.fire=trTM.f.fire||function(o){trTM.d.f.push(o);};
+trTM.c=c;var s='script',t=d.createElement(s),m=c.min?'.min':'',p=c.path;if(p.length>0&&p.substring(p.length-1)!='/')p+='/';t.src=c.path+'trTM'+m+'.js';t.async=true;d.head.appendChild(t);
 })({
   // trTM Config Start
    path: '/templates/scripts/'
   ,cmp: 'consentmanager'
-  ,gtmID: 'GTM-XYZ123'
+  ,gtm: { 'GTM-XYZ123': {} } // your GTM Container - with ID, ...
   ,gtmPurposes:'Funktional'
   ,gtmServices:'Google Tag Manager'
   // trTM Config End
@@ -92,7 +93,8 @@ To use it as normal, follow these steps:
    <!-- trTM Start -->
    <script type="text/javascript" id="trTMcontainer" nonce="abc123">
    (function(c){
-   var w=window,d=document;w.trTM=w.trTM||{};w.trTM.c=c;var s='script',t=d.createElement(s),m=c.min?'.min':'',p=c.path;if(p.length>0&&p.substring(p.length-1)!='/')p+='/';t.src=c.path+'trTM'+m+'.js';t.async=true;d.head.appendChild(t);
+   var w=window,d=document;w.trTM=w.trTM||{};trTM.d=trTM.d||{};trTM.d.f=trTM.d.f||[];trTM.f=trTM.f||{};trTM.f.fire=trTM.f.fire||function(o){trTM.d.f.push(o);};
+   trTM.c=c;var s='script',t=d.createElement(s),m=c.min?'.min':'',p=c.path;if(p.length>0&&p.substring(p.length-1)!='/')p+='/';t.src=c.path+'trTM'+m+'.js';t.async=true;d.head.appendChild(t);
    })({
    // trTM Config Start
       path: '/js/' // (relative) path to the directory where trTM is located, e.g. '/js/''
@@ -100,7 +102,7 @@ To use it as normal, follow these steps:
      ,min:true // inject the files as minified versions
      ,cmp: 'cookiebot' // Type of Consent Tool (Cookie Banner) you use in lower case, e.g. 'cookiebot'. See chapters below for possible options.
      ,nonce: 'ABC123' // Nonce value for the file injections
-     ,gtmID: 'GTM-XYZ123' // your GTM Container ID - leave it empty if you don't want to the Google Tag Manager
+     ,gtm: { 'GTM-XYZ123': { 'debug_mode':true } } // your GTM Container - with ID, ...
      ,gtmPurposes: 'Functional' // The purpose(s) that must be agreed to in order to activate the GTM (comma-separated)
      ,gtmServices: 'Google Tag Manager' // The services(s) that must be agreed to in order to activate the GTM (comma-separated), e.g. 'Google Tag Manager'
      ,gtmVendors: 'Google Inc' // The vendor(s) that must be agreed to in order to activate the GTM (comma-separated)
@@ -109,8 +111,6 @@ To use it as normal, follow these steps:
      ,gtagServices: 'Google Analytics' // The services(s) that must be agreed to in order to activate the GTAG (comma-separated), e.g. 'Google Analytics'
      ,gtagVendors: 'Google Inc' // The vendor(s) that must be agreed to in order to activate the GTAG (comma-separated)
      ,gdl: 'dataLayer' // Name of GTM dataLayer
-     ,gdlClear: false // Clear the GTM dataLayer before loading the GTM
-     ,gdlRepeat: [] // Repeat the GTM dataLayer events which are specified in this array (after loading the GTM). Use * as placeholder
      ,env: '' // Environment string (leave it blank you you don't know, what it is)
      ,dlStateEvents: true // Fire GTM dataLayer Events for DOMloaded and PAGEready
      ,useListener: false // Use an event listener to check the consent (true). If it is false, a timer will be used (default) to check the consent
@@ -195,7 +195,8 @@ With this integration variant you get out a Javascript code, which conatins all 
    Example integration code:
    ```javascript
    (function(c){
-   var w=window,d=document;w.trTM=w.trTM||{};w.trTM.c=c;var s='script',t=d.createElement(s),m=c.min?'.min':'',p=c.path;if(p.length>0&&p.substring(p.length-1)!='/')p+='/';t.src=c.path+'trTM'+m+'.js';t.async=true;d.head.appendChild(t);
+   var w=window,d=document;w.trTM=w.trTM||{};trTM.d=trTM.d||{};trTM.d.f=trTM.d.f||[];trTM.f=trTM.f||{};trTM.f.fire=trTM.f.fire||function(o){trTM.d.f.push(o);};
+   trTM.c=c;var s='script',t=d.createElement(s),m=c.min?'.min':'',p=c.path;if(p.length>0&&p.substring(p.length-1)!='/')p+='/';t.src=c.path+'trTM'+m+'.js';t.async=true;d.head.appendChild(t);
    })({
    // trTM Config Start
       path: '/js/' // (relative) path to the directory where trTM is located, e.g. '/js/''
@@ -203,7 +204,7 @@ With this integration variant you get out a Javascript code, which conatins all 
      ,min:true // inject the files as minified versions
      ,cmp: 'cookiebot' // Type of Consent Tool (Cookie Banner) you use in lower case, e.g. 'cookiebot'. See chapters below for possible options.
      ,nonce: 'ABC123' // Nonce value for the file injections
-     ,gtmID: 'GTM-XYZ123' // your GTM Container ID - leave it empty if you don't want to the Google Tag Manager
+     ,gtm: { 'GTM-XYZ123': { 'debug_mode':true } } // your GTM Container - with ID, ...
      ,gtmPurposes: 'Functional' // The purpose(s) that must be agreed to in order to activate the GTM (comma-separated)
      ,gtmServices: 'Google Tag Manager' // The services(s) that must be agreed to in order to activate the GTM (comma-separated), e.g. 'Google Tag Manager'
      ,gtmVendors: 'Google Inc' // The vendor(s) that must be agreed to in order to activate the GTM (comma-separated)
@@ -212,8 +213,6 @@ With this integration variant you get out a Javascript code, which conatins all 
      ,gtagServices: 'Google Analytics' // The services(s) that must be agreed to in order to activate the GTAG (comma-separated), e.g. 'Google Analytics'
      ,gtagVendors: 'Google Inc' // The vendor(s) that must be agreed to in order to activate the GTAG (comma-separated)
      ,gdl: 'dataLayer' // Name of GTM dataLayer
-     ,gdlClear: false // Clear the GTM dataLayer before loading the GTM
-     ,gdlRepeat: [] // Repeat the GTM dataLayer events which are specified in this array (after loading the GTM). Use * as placeholder
      ,env: '' // Environment string (leave it blank you you don't know, what it is)
      ,dlStateEvents: true // Fire GTM dataLayer Events for DOMloaded and PAGEready
      ,useListener: false // Use an event listener to check the consent (true). If it is false, a timer will be used (default) to check the consent
@@ -328,18 +327,6 @@ Name of GTM dataLayer
 Type: string
 Example: `'dataLayer'`
 Default: `'dataLayer'`
-
-### gdlClear ###
-Clear the GTM dataLayer before loading the GTM
-Type: boolean
-Example: `true`
-Default: `false`
-
-### gdlRepeat ###
-Repeat the GTM dataLayer events which are specified in this array (after loading the GTM). Use * as placeholder
-Type: array
-Example: `['consent*','purchase']`
-Default: `[]`
 
 ### dlStateEvents ###
 Fire GTM dataLayer Events for DOMloaded and PAGEready
@@ -802,8 +789,8 @@ You can use this to fire a second GTM container with this code, which then has t
 It's not nice, but sometimes it's the only solution.
 In any case, the Google Tag Manager unfortunately only accepts Javascript up to ECMAscript 6, which means we are tied to old spellings.
 
-Q: *What happens if there are Events were pushed in the GTM dataLayer, before the GTM was injected?*
-A: In that case, all these Events will be fired again after the GTM was injected. The dataLayer will be cleared before, so that there are no duplicated entries.
+Q: *What happens if there are Events were pushed in the GTM dataLayer (or fired via trTM.f.fire), before the GTM was injected?*
+A: There is a GTM Custom Template you can use to repeat these events.
 
 
 ## Author and Contact ##
@@ -822,6 +809,12 @@ Feel free to contact me if you found problems or improvements:
 
 
 ## Changelog ##
+
+- Version 1.6, *19.03.2024*
+  - Re-Arrangement of Function order (just their order in the code)
+  - Added Function for Timer (to use it in GTM Cuistom Template)
+  - Observer added
+  - Attributes gdlRepeat and gdlClear removed - there is a GTM Custom Template now
 
 - Version 1.5.1, *12.03.2024*
   - Added Function for adding an Event Listener using GTM Custom Template
