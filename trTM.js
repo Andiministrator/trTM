@@ -1,9 +1,10 @@
 //[trTM.js]BOF
 
+
 /**
  * Global implementation script/object for Google GTAG and Tag Manager, depending on the user consent.
- * @version 1.5.1
- * @lastupdate 12.03.2024 by Andi Petzoldt <andi@tracking-garden.com>
+ * @version 1.6
+ * @lastupdate 19.03.2024 by Andi Petzoldt <andi@tracking-garden.com>
  * @repository https://github.com/Andiministrator/trTM/
  * @author Andi Petzoldt <andi@petzoldt.net>
  * @documentation see README.md or https://github.com/Andiministrator/trTM/
@@ -31,17 +32,23 @@
  * </script>
  */
 
+
+/***** Initialization and Configuration *****/
+
 // Initialitialize the objects
 window.trTM = window.trTM || {}; // Tag Manager Global Object
 trTM.c = trTM.c || {}; // TM Configuration Settings Object
 trTM.d = trTM.d || {}; // TM Data Object
-trTM.d.version = '1.5.1'; // trTM Version
+trTM.d.version = '1.6'; // trTM Version
+trTM.d.f = trTM.d.f || []; // Array for temp. Fire Events
 trTM.d.config = trTM.d.config || false; // is TM is configured?
 trTM.d.init = trTM.d.init || false; // is TM Initialisation complete?
-trTM.d.fired = trTM.d.fired || false; // is TM active (was fired)
 trTM.d.dom_ready = trTM.d.dom_ready || false; // DOMready state
 trTM.d.page_ready = trTM.d.page_ready || false; // Page (complete) Loaded state
 trTM.d.ev_fct_ctr = trTM.d.ev_fct_ctr || 0; // Event Counter
+trTM.d.timer = trTM.d.timer || {}; // Active Timer
+trTM.d.error_counter = trTM.d.error_counter || 0; // Set Error Counter
+trTM.d.errors = trTM.d.errors || []; // Set Array for Errors
 trTM.d.dl = trTM.d.dl || []; // Data Layer
 trTM.f = trTM.f || {}; // TM Function Library Object
 trTM.f.tl = trTM.f.tl || {}; // Function Container for Tracking/Library loaded
@@ -104,8 +111,6 @@ if (typeof trTM.f.config!='function') trTM.f.config = function (cfg) {
   trTM.c.gtmServices = cfg.gtmServices || ''; // The services(s) that must be agreed to in order to activate the GTM (comma-separated), e.g. 'Google Tag Manager'
   trTM.c.gtmVendors = cfg.gtmVendors || ''; // The vendors(s) that must be agreed to in order to activate the GTM (comma-separated), e.g. 'Google Inc'
   trTM.c.gdl = cfg.gdl || 'dataLayer'; // Name of GTM dataLayer | Default:'dataLayer'
-  trTM.c.gdlClear = cfg.gdlClear || false; // Clear the GTM dataLayer before loading the GTM
-  trTM.c.gdlRepeat = cfg.gdlRepeat || []; // Repeat the GTM dataLayer events which are specified in this array (after loading the GTM). Use * as placeholder
   if (typeof trTM.c.dlStateEvents!='boolean') trTM.c.dlStateEvents = true; // Fire GTM dataLayer Events for DOMloaded and PAGEready
   trTM.c.gtag = cfg.gtag || null; // GTAG(s) with config - set it to null if you don't want to use GTAG functionallity, example: cfg.gtag = { 'G-xxx': { debug_mode:true, send_page_view:false } };
   trTM.c.gtagPurposes = cfg.gtagPurposes || ''; // The purpose(s) that must be agreed to in order to activate the GTAG (comma-separated), e.g. 'Marketing'
@@ -162,46 +167,13 @@ if (typeof trTM.f.config!='function') trTM.f.config = function (cfg) {
  * @property {function} gtag
  * Usage: gtag(arguments);
  */
+window[trTM.c.gdl] = window[trTM.c.gdl] || [];
 window.gtag = window.gtag || function () {
-  //window[trTM.c.gdl] = window[trTM.c.gdl] || [];
   window[trTM.c.gdl].push(arguments);
 };
 
-/**
- * Function to gets the value of a C.
- * @property {function} trTM.f.gc
- * @param {string} cname - name of the C.
- * @returns {string|number|boolean|object} - value of C. (null if C. not exists)
- * Usage: trTM.f.gc('consent');
- */
-trTM.f.gc = trTM.f.gc || function (cname) {
-  var re = new RegExp(cname + "=([^;]+)");
-  try {
-    var d = document;
-    var c = 'co' + /* ec */ 'o' + 'kie';
-    var value = re.exec(d[c]);
-  } catch (e) {}
-  if (typeof value!='object' || !value || value.length<2) return null;
-  return decodeURI(value[1]);
-};
 
-/**
- * Function for adding an Event Listener
- * @property {function} trTM.f.evLstn
- * @param {object} el - the dom object where you want to add the event listener, you should catch it e.g. with document.querySelector('div.CLASSNAME')
- * @param {string} ev - the event name, e.g. 'mousedown'
- * @param {function} fct - the functio to run, if the event listener matches
- * Usage: trTM.f.evLstn( document.querySelector('div.button'), 'mousedown', click_fct );
- */
-trTM.f.evLstn = trTM.f.evLstn || function(el, ev, ft) {
-  if (typeof el=='string' && el=='window') el = window;
-  if (typeof el=='string' && el=='document') el = document;
-  if(typeof el!='object' || !el || typeof ev!='string' || typeof ft!='function') {
-    trTM.f.log('e11', el);
-    return;
-  }
-  try { el.addEventListener(ev,ft); } catch(e) { trTM.f.log('e12', el); }
-};
+/***** Consent Functions *****/
 
 /**
  * Function to load the (real) consent_check function, depending on your Consent Tool (CMP)
@@ -320,14 +292,41 @@ if (typeof trTM.f.run_cc!='function') trTM.f.run_cc = function (a) {
     if (a=='update') {
       var gcm = trTM.d.cm || {};
       gtag('consent', 'update', gcm);
-      if (!trTM.d.fired) return trTM.f.inject();
+      if (!trTM.d.init) return trTM.f.inject();
       trTM.f.fire({ event:'trTM_consent_update', cmp:JSON.parse(JSON.stringify(trTM.d.consent)), gcm:JSON.parse(JSON.stringify(gcm)), gtag:false});
     }
   }
+  // Callback
   if (typeof trTM.f.consent_callback=='function') trTM.f.consent_callback(a);
   trTM.f.log('m3', trTM.d.consent);
   return true;
 };
+
+/**
+ * Logic to run for a consent event listener or consent timer function
+ * Returns true, if consent was checked successful, false if not
+ * @property {function} trTM.f.call_cc
+ * Usage: var res = trTM.f.call_cc();
+ */
+if (typeof trTM.f.call_cc!='function') trTM.f.call_cc = function () {
+  var consent = trTM.f.run_cc('init');
+  if (!consent) return false;
+  if (typeof trTM.d.timer!='undefined') { clearInterval(trTM.d.timer); delete trTM.d.timer; }
+  if (!trTM.d.init) return trTM.f.inject();
+  return true;
+};
+
+/**
+ * Function to check whether consent is available, either with an event listener or periodically
+ * @property {function} trTM.f.consent_listener
+ * Usage: trTM.f.consent_listener();
+ */
+if (typeof trTM.f.consent_listener!='function') trTM.f.consent_listener = function () {
+  if (!trTM.c.useListener) trTM.d.timer = setInterval(trTM.f.call_cc, 1000);
+};
+
+
+/***** Google Tag Manager specific Functions *****/
 
 /**
  * Function to initialize the Google Tag Manager
@@ -341,42 +340,17 @@ if (typeof trTM.f.run_cc!='function') trTM.f.run_cc = function (a) {
  */
 if (typeof trTM.f.gtm_load!='function') trTM.f.gtm_load = function (w, d, i, l, o) {
   if (!trTM.d.config) { trTM.f.log('e7', null); return; }
-  if (!trTM.d.init) {
-    var s = 'script', f = d.getElementsByTagName(s)[0], n = d.createElement(s);
-    n.id = 'trTM_tm'; n.async = true;
-    if (trTM.c.nonce) n.nonce = trTM.c.nonce;
-    if (o.gtmJS) {
-      n.innerHTML = atob(o.gtmJS);
-    } else {
-      var a = o.gtmURL || 'https://www.goo'+'glet'+'agmanager.com/gtm.js';
-      var e = o.env || '';
-      n.src = a + '?id='+i + '&l='+l+e;
-    }
-    f.parentNode.insertBefore(n, f);
+  var s = 'script', f = d.getElementsByTagName(s)[0], n = d.createElement(s);
+  n.id = 'trTM_tm'; n.async = true;
+  if (trTM.c.nonce) n.nonce = trTM.c.nonce;
+  if (o.gtmJS) {
+    n.innerHTML = atob(o.gtmJS);
+  } else {
+    var a = o.gtmURL || 'https://www.goo'+'glet'+'agmanager.com/gtm.js';
+    var e = o.env || '';
+    n.src = a + '?id='+i + '&l='+l+e;
   }
-};
-
-/**
- * Logic to run for a consent event listener or consent timer function
- * Returns true, if consent was checked successful, false if not
- * @property {function} trTM.f.call_cc
- * Usage: var res = trTM.f.call_cc();
- */
-if (typeof trTM.f.call_cc!='function') trTM.f.call_cc = function () {
-  var consent = trTM.f.run_cc('init');
-  if (!consent) return false;
-  if (typeof trTM.d.timer!='undefined') { clearInterval(trTM.d.timer); delete trTM.d.timer; }
-  if (!trTM.d.fired) return trTM.f.inject();
-  return true;
-};
-
-/**
- * Function to check whether consent is available, either with an event listener or periodically
- * @property {function} trTM.f.consent_listener
- * Usage: trTM.f.consent_listener();
- */
-if (typeof trTM.f.consent_listener!='function') trTM.f.consent_listener = function () {
-  if (!trTM.c.useListener) trTM.d.timer = setInterval(trTM.f.call_cc, 1000);
+  f.parentNode.insertBefore(n, f);
 };
 
 /**
@@ -403,6 +377,164 @@ trTM.f.pageready = trTM.f.pageready || function() {
   trTM.d.page_ready = true;
 };
 
+
+/***** Injection *****/
+
+/**
+ * Function to inject the GTM and/or GTAG into the website
+ * @property {function} trTM.f.inject
+ * Usage: trTM.f.inject();
+ */
+if (typeof trTM.f.inject!='function') trTM.f.inject = function () {
+  if (!trTM.d.config) { trTM.f.log('e8', null); return false; }
+  if (typeof trTM.d.consent!='object' || typeof trTM.d.consent.hasResponse!='boolean' || !trTM.d.consent.hasResponse) {
+    trTM.f.log('e13', null);
+    return false;
+  }
+  if (!trTM.d.init) {
+    // Temp. store dataLayer
+    var dl = window[trTM.c.gdl] || [];
+    if (dl.length>0) {
+      for (var i=0; i<dl.length; i++) {
+        if (!dl[i].trTMchk) {
+          dl[i].trTMdl = true;
+          var o = JSON.parse(JSON.stringify(dl[i]));
+          if (typeof o['gtm.uniqueEventId']!='undefined') delete o['gtm.uniqueEventId'];
+          trTM.d.f.push(o);
+        }
+      }
+    }
+    // Initiate gtag
+    if ((trTM.c.gtag && trTM.d.consent.gtagConsent) || (trTM.c.gtm_use && trTM.d.consent.gtmConsent)) {
+      var gcm = {};
+      if (trTM.c.consent.cm && typeof trTM.d.cm=='object') {
+        gtag('consent', 'default', trTM.d.cm);
+        gcm = trTM.d.cm;
+      }
+      /* deprecated */ trTM.f.fire({ event:'trTM_consent_init', trTM_Notice:'this event is deprecated' ,cmp:trTM.d.consent, gcm:gcm, gtag:false });
+      trTM.f.fire({ event:'trTM_ready', gtag:false, trTM: { version:trTM.d.version, consent:trTM.d.consent, gcm:gcm, hastyEvents:trTM.d.f, errors:trTM.d.errors } });
+    }
+    // Inject GTAG
+    if (trTM.c.gtag && trTM.d.consent.gtagConsent) {
+      var gtags = [];
+      for (var k in trTM.c.gtag) { gtags.push(k); }
+      if (gtags.length>0) {
+        var scr = document.createElement('script');
+        scr.src = 'https://www.goo'+'glet'+'agman'+'ager.com/gtag/js?id=' + gtags[0];
+        scr.type = 'text/javascript';
+        scr.async = true;
+        document.head.appendChild(scr);
+        gtag('js', new Date());
+        for (var k in trTM.c.gtag) {
+          var gc = trTM.c.gtag[k];
+          if (gc) { gtag('config', k, gc); } else { gtag('config', k); };
+        }
+        if (typeof trTM.f.gtag_inject_callback=='function') trTM.f.gtag_inject_callback();
+        trTM.f.log('m5', trTM.c.gtag);
+      }
+      trTM.d.init = true;
+    }
+    // Inject GTM
+    if (trTM.c.gtm_use && trTM.d.consent.gtmConsent) {
+      // Set GTM Start Push
+      if (!trTM.c.gtag || typeof trTM.d.consent.gtagConsent!='boolean' || !trTM.d.consent.gtagConsent) {
+        var o = {'event':'gtm.js','initTime':new Date().getTime(),'gtm.start':new Date().getTime()};
+        if (trTM.c.nonce) o.nonce = trTM.c.nonce;
+        trTM.d.dl.push(o);
+        window[trTM.c.gdl].push(o);
+      }
+      // Inject GTM
+      for (var k in trTM.c.gtm) {
+        trTM.f.gtm_load(window,document,k,trTM.c.gdl,trTM.c.gtm[k]);
+      }
+      trTM.d.init = true;
+    }
+    // DOMready call
+    var s = document.readyState;
+    if (s=='interactive' || s=='loaded' || s=='complete') {
+      trTM.f.domready();
+    } else {
+      trTM.f.evLstn(document,'DOMContentLoaded',trTM.f.domready)
+    }
+    // PAGEloaded state
+    var s = document.readyState;
+    if (s=='interactive' || s=='loaded' || s=='complete') {
+      trTM.f.pageready();
+    } else {
+      trTM.f.evLstn(window,'load',trTM.f.pageready)
+    }
+  }
+  // Callback and Return
+  if (typeof trTM.f.inject_callback=='function') trTM.f.inject_callback();
+  trTM.f.log('m6', null);
+  return true;
+};
+
+
+/***** Helper Functions *****/
+
+/**
+ * Function to clean a string
+ * @property {function} trTM.f.strclean
+ * @param {string} str - string to clean
+ * @returns {string} - cleaned string
+ * Usage: trTM.f.strclean('any "dirty"; string');
+ */
+trTM.f.strclean = trTM.f.strclean || function (str) {
+  if (typeof str!='string') return '';
+  return str.replace(/[^a-zäöüßA-ZÄÖÜ0-9_-]/g, '');
+};
+
+/**
+ * Function to clean a string
+ * @property {function} trTM.f.chkvar
+ * @param {string|number|object|boolean} v - value to check
+ * @param {sting} t - type of var to check
+ * @returns {boolean} - true if var value matches with the type and is not empty
+ * Usage: trTM.f.chkvar('any "dirty"; string');
+ */
+trTM.f.chkvar = trTM.f.chkvar || function (v,t) {
+  if (typeof v!=t) return false;
+  if (typeof v!='boolean' && typeof v!='function' && !v) return false;
+  return true;
+};
+
+/**
+ * Function to gets the value of a C.
+ * @property {function} trTM.f.gc
+ * @param {string} cname - name of the C.
+ * @returns {string|number|boolean|object} - value of C. (null if C. not exists)
+ * Usage: trTM.f.gc('consent');
+ */
+trTM.f.gc = trTM.f.gc || function (cname) {
+  var re = new RegExp(cname + "=([^;]+)");
+  try {
+    var d = document;
+    var c = 'co' + /* ec */ 'o' + 'kie';
+    var value = re.exec(d[c]);
+  } catch (e) {}
+  if (typeof value!='object' || !value || value.length<2) return null;
+  return decodeURI(value[1]);
+};
+
+/**
+ * Function for adding an Event Listener
+ * @property {function} trTM.f.evLstn
+ * @param {object} el - the dom object where you want to add the event listener, you should catch it e.g. with document.querySelector('div.CLASSNAME')
+ * @param {string} ev - the event name, e.g. 'mousedown'
+ * @param {function} fct - the functio to run, if the event listener matches
+ * Usage: trTM.f.evLstn( document.querySelector('div.button'), 'mousedown', click_fct );
+ */
+trTM.f.evLstn = trTM.f.evLstn || function(el, ev, ft) {
+  if (typeof el=='string' && el=='window') el = window;
+  if (typeof el=='string' && el=='document') el = document;
+  if(typeof el!='object' || !el || typeof ev!='string' || typeof ft!='function') {
+    trTM.f.log('e11', el);
+    return;
+  }
+  try { el.addEventListener(ev,ft); } catch(e) { trTM.f.log('e12', el); }
+};
+
 /**
  * Gets back a (predefined) value from window, document or body
  * @usage Gets back a (predefined) value from window, document or body
@@ -423,6 +555,46 @@ trTM.f.getVal = trTM.f.getVal || function (o, v) {
 };
 
 /**
+ * Adds an element Listener to a DOM element
+ * @usage Adds an element Listener to a DOM element
+ * @lastupdate 10.03.2024 by Andi Petzoldt <andi@tracking-garden.com>
+ * @author Andi Petzoldt <andi@tracking-garden.com>
+ * @property {function} trTM.f.elLst
+ * @param {string} o - The DOM element object
+ * @param {string} e - Event to add, e.g. 'mousedown'
+ * @param {function} f - Function to add
+ * Usage: trTM.f.elLst(<a>Linl</a>, 'mousedown', myClickFct);
+ */
+trTM.f.elLst = trTM.f.elLst || function (o, e, f) {
+  try {
+    o.addEventListener(e,function(p){
+      // Get parent ID
+      var pid = '', cElID = this;
+      while (cElID && cElID.parentElement && !cElID.id) { cElID = cElID.parentElement; if (cElID.id) { pid = cElID.id; if (typeof cElID.nodeName=='string') pid = cElID.nodeName.toLowerCase() + ':' + pid; } }
+      // Get parent Class
+      var pclass = '', cElClass = this;
+      while (cElClass && cElClass.parentElement && !cElClass.getAttribute('class')) { cElClass = cElClass.parentElement; if (cElClass.getAttribute('class')) { pclass = cElClass.getAttribute('class'); if (typeof cElClass.nodeName=='string') pclass = cElClass.nodeName.toLowerCase() + ':' + pclass; } }
+      // Define Event Object
+      var obj = {
+        target: this.target ? this.target : '',
+        parentID: pid,
+        parentClass: pclass,
+        id: this.id ? this.id : '',
+        name: typeof this.getAttribute('name')=='string' ? this.getAttribute('name') : '',
+        class: typeof this.getAttribute('class')=='string' ? this.getAttribute('class') : '',
+        href: this.href ? this.href : '',
+        src: this.src ? this.src : '',
+        action: this.action ? this.action : '',
+        html: this.outerHTML ? JSON.parse(JSON.stringify(this.outerHTML)) : null,
+        text: this.outerText ? JSON.parse(JSON.stringify(this.outerText)) : ''
+      };
+      // Send Event Object
+      f(obj);
+    });
+  } catch(e) { trTM.f.log('e12', o); }
+};
+
+/**
  * Adds an element Listener to DOM elements
  * @usage Adds an element Listener to DOM elements
  * @lastupdate 10.03.2024 by Andi Petzoldt <andi@tracking-garden.com>
@@ -436,36 +608,62 @@ trTM.f.getVal = trTM.f.getVal || function (o, v) {
 trTM.f.addElLst = trTM.f.addElLst || function (s, e, f) {
   if (typeof s!='string' || typeof e!='string' || typeof f!='function') return;
   var nodes = document.querySelectorAll(s);
-  if (typeof nodes!='object' || !nodes || nodes.length==0) return;
+  if (!trTM.f.chkvar(nodes,'object') || nodes.length==0) return;
   for (var i=0; i<nodes.length; i++) {
-    //trTM.f.evLstn(nodes[i], e, function(p){f(p);});
-    try {
-      nodes[i].addEventListener(e,function(p){
-        // Get parent ID
-        var pid = '', cElID = this;
-        while (cElID && cElID.parentElement && !cElID.id) { cElID = cElID.parentElement; if (cElID.id) { pid = cElID.id; if (typeof cElID.nodeName=='string') pid = cElID.nodeName.toLowerCase() + ':' + pid; } }
-        // Get parent Class
-        var pclass = '', cElClass = this;
-        while (cElClass && cElClass.parentElement && !cElClass.getAttribute('class')) { cElClass = cElClass.parentElement; if (cElClass.getAttribute('class')) { pclass = cElClass.getAttribute('class'); if (typeof cElClass.nodeName=='string') pclass = cElClass.nodeName.toLowerCase() + ':' + pclass; } }
-        // Define Event Object
-        var o = {
-          target: this.target ? this.target : '',
-          parentID: pid,
-          parentClass: pclass,
-          id: this.id ? this.id : '',
-          name: typeof this.getAttribute('name')=='string' ? this.getAttribute('name') : '',
-          class: typeof this.getAttribute('class')=='string' ? this.getAttribute('class') : '',
-          href: this.href ? this.href : '',
-          src: this.src ? this.src : '',
-          action: this.action ? this.action : '',
-          html: this.outerHTML ? JSON.parse(JSON.stringify(this.outerHTML)) : null,
-          text: this.outerText ? JSON.parse(JSON.stringify(this.outerText)) : ''
-        };
-        // Send Event Object
-        f(o);
-      });
-    } catch(e) { trTM.f.log('e12', nodes[i]); }
+    trTM.f.elLst(nodes[i],e,f);
   }
+};
+
+/**
+ * Document Body Observer Function
+ * @usage Adds element listener to elements in Body DOM, if the Body changes
+ * @lastupdate 18.03.2024 by Andi Petzoldt <andi@tracking-garden.com>
+ * @author Andi Petzoldt <andi@tracking-garden.com>
+ * @property {function} trTM.f.observer
+ * @param {string} d - DOM element to watch with the Observer, e.g. 'body'
+ * @param {string} e - Event to add, e.g. 'mousedown'
+ * @param {function} f - Function to add
+ * Usage: trTM.f.observer('a', 'mousedown', myClickFct);
+ */
+trTM.f.observer = trTM.f.observer || function (d, e, f) {
+    if (!trTM.f.chkvar(d,'string') || !trTM.f.chkvar(e,'string') || !trTM.f.chkvar(f,'function')) return;
+    // Observer Function
+    var observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (mutation.type === 'childList' && mutation.addedNodes.length) {
+          Array.prototype.forEach.call(mutation.addedNodes, function(node) {if(typeof node.tagName=='string'&&(node.tagName.toLowerCase()=='a'||node.tagName.toLowerCase()=='button'))console.log('OBSERVER add',node);
+            // Prüfe, ob der direkt hinzugefügte Knoten ein Tag ist
+            if (node.nodeType === 1 && typeof node.tagName=='string' && node.tagName.toLowerCase() === d.toLowerCase()) {
+              trTM.f.elLst(node,e,f);
+            }
+            // Prüfe, ob in den untergeordneten Knoten des hinzugefügten Knotens Tags vorhanden sind
+            if (node.nodeType === 1) {
+              var innerTags = node.querySelectorAll(d.toLowerCase());
+              Array.prototype.forEach.call(innerTags, function(tag) {
+                trTM.f.elLst(tag,e,f);
+              });
+            }
+          });
+        }
+/*
+        // Bei Änderungen von Attributen, überprüfe, ob dies bei einem Tag geschieht
+        if (mutation.type === 'attributes' && typeof mutation.target.tagName=='string' && mutation.target.tagName.toLowerCase() === d.toLowerCase()) {if(mutation.target.tagName.toLowerCase()=='a'||mutation.target.tagName.toLowerCase()=='button')console.log('OBSERVER attr',mutation.target);
+          mutation.target.addEventListener(e, f);
+        }
+        // Überprüfe geänderte Nodes auf das Hinzufügen von Tags
+        if (mutation.type === 'childList' && mutation.target.nodeType === 1) {
+          var addedTags = mutation.target.querySelectorAll(d.toLowerCase());
+          Array.prototype.forEach.call(addedTags, function(tag) {console.log('OBSERVER subadd',tag);
+            trTM.f.elLst(tag,e,f);
+          });
+        }
+*/
+      });
+    });
+    // Observers Config: Watching new Nodes in Body
+    var config = { childList: true, subtree: true, attributes: true };
+    // Attach Observer to the Body
+    observer.observe(document.body, config);
 };
 
 /**
@@ -477,112 +675,133 @@ trTM.f.addElLst = trTM.f.addElLst || function (s, e, f) {
  * @param {string} r - Regex String, that is used for new Regex
  * Usage: trTM.f.regEx('[0-9]+');
  */
-trTM.f.regEx = trTM.f.regEx || function (r) {
+/*trTM.f.regEx = trTM.f.regEx || function (r) {
   return new RegExp(r);
+};*/
+
+/**
+ * Just a helper function for test a string for a RegExp
+ * @usage Return true, if the Regexp matches to the string, otherwise false
+ * @lastupdate 19.03.2024 by Andi Petzoldt <andi@tracking-garden.com>
+ * @author Andi Petzoldt <andi@tracking-garden.com>
+ * @property {function} trTM.f.rTest
+ * @param {string} s - String, that has to be tested
+ * @param {string} r - Regex String that is used
+ * Usage: trTM.f.rTest('cmpUpdateEvent','cmp*Event',true);
+ */
+trTM.f.rTest = trTM.f.rTest || function (s,r) {
+  if (typeof s!='string' || typeof r!='string') return false;
+  var re = new RegExp(r);
+  return re.test(s);
 };
 
 /**
- * Function to inject the GTM and/or GTAG into the website
- * @property {function} trTM.f.inject
- * Usage: trTM.f.inject();
+ * Pushes JS Errors to the GTM dataLayer
+ * @usage Pushes JS Errors to the GTM dataLayer
+ * @lastupdate 13.03.2024 by Andi Petzoldt <andi@tracking-garden.com>
+ * @author Andi Petzoldt <andi@tracking-garden.com>
+ * @property {function} trTM.f.jserrors
+ * Usage: trTM.f.jserrors();
  */
-if (typeof trTM.f.inject!='function') trTM.f.inject = function () {
-  if (!trTM.d.config) { trTM.f.log('e8', null); return false; }
-  if (typeof trTM.d.consent!='object' || typeof trTM.d.consent.hasResponse!='boolean' || !trTM.d.consent.hasResponse) {
-    trTM.f.log('e13', null);
-    return false;
-  }
-  if (!trTM.d.fired) {
-    // Initiate gtag
-    if ((trTM.c.gtag && trTM.d.consent.gtagConsent) || (trTM.c.gtm_use && trTM.d.consent.gtmConsent)) {
-      var tmpDL = window[trTM.c.gdl] || [];
-      if (trTM.c.gdlClear) window[trTM.c.gdl] = [];
-      var gcm = {};
-      if (trTM.c.consent.cm && typeof trTM.d.cm=='object') {
-        gtag('consent', 'default', trTM.d.cm);
-        gcm = trTM.d.cm;
+trTM.f.jserrors = trTM.f.jserrors || function () {
+  trTM.f.evLstn( window, 'error', function(ev) {
+    if(ev!==null){
+      var filename = typeof ev.filename=='string' ? ev.filename : '';
+      var msg = typeof ev.message=='string' ? ev.message : '';
+      if (msg.toLowerCase()=='script error.') {
+        if (!filename) return;
+        msg = msg.replace('.', ':') + ' error from other domain.';
       }
-      trTM.f.fire({ event:'trTM_consent_init', cmp:trTM.d.consent, gcm:gcm, gtag:false });
-    }
-    var set_fired = false;
-    // Inject GTAG
-    if (trTM.c.gtag && trTM.d.consent.gtagConsent) {
-      var gtags = [];
-      for (var k in trTM.c.gtag) { gtags.push(k); }
-      if (gtags.length>0) {
-        var scr = document.createElement('script');
-        scr.src = 'https://www.goo'+'glet'+'agman'+'ager.com/gtag/js?id=' + gtags[0];
-        scr.type = 'text/javascript';
-        scr.async = true;
-        document.head.appendChild(scr);
-        gtag('js', new Date());
-        for (var k in trTM.c.gtag) {
-          var gc = trTM.c.gtag[k];
-          if (gc) { gtag('config', k, gc); } else { gtag('config', k); };
-        }
-        if (typeof trTM.f.gtag_inject_callback=='function') trTM.f.gtag_inject_callback();
-        trTM.f.log('m5', trTM.c.gtag);
-      }
-      set_fired = true;
-    }
-    // Inject GTM
-    if (trTM.c.gtm_use && trTM.d.consent.gtmConsent) {
-      var latDL = [];
-      if (tmpDL.length>0) {
-        for (var i=0; i<tmpDL.length; i++) {
-          if (typeof tmpDL[i]=='object' && typeof tmpDL[i].length!='number') {
-            var ev = JSON.parse(JSON.stringify(tmpDL[i]));
-            if (typeof ev['gtm.uniqueEventId']!='undefined') delete ev['gtm.uniqueEventId'];
-            latDL.push(ev);
-          }
-        }
-      }
-      // Set GTM Start Push
-      if (!trTM.c.gtag || typeof trTM.d.consent.gtagConsent!='boolean' || !trTM.d.consent.gtagConsent) {
-        var o = {'event':'gtm.js','initTime':new Date().getTime(),'gtm.start':new Date().getTime()};
-        if (trTM.c.nonce) o.nonce = trTM.c.nonce;
-        trTM.d.dl.push(o);
-        window[trTM.c.gdl].push(o);
-      }
-      // Inject GTM
-      for (var k in trTM.c.gtm) {
-        trTM.f.gtm_load(window,document,k,trTM.c.gdl,trTM.c.gtm[k]);
-      }
-      if (trTM.c.gdlRepeat.length>0) {
-        for (var i=0; i<latDL.length; i++) {
-          var fire = false;
-          for (var j=0; j<trTM.c.gdlRepeat.length; j++) {
-            var pattern = new RegExp( trTM.c.gdlRepeat[j].replace(/\./g, '\\.').replace(/\*/g, '.*') , 'i');
-            if (typeof latDL[i].event=='string' && pattern.test(latDL[i].event)) { trTM.f.fire(latDL[i]); }
-          }
-        }
-      }
-      // Callback
-      if (typeof trTM.f.inject_callback=='function') trTM.f.inject_callback();
-      trTM.f.log('m6', null);
-      set_fired = true;
-    }
-    if (set_fired) {
-      trTM.d.fired = true;
-      trTM.d.init = true;
-    }
-    // DOMready call
-    var s = document.readyState;
-    if (s=='interactive' || s=='loaded' || s=='complete') {
-      trTM.f.domready();
-    } else {
-      trTM.f.evLstn(document,'DOMContentLoaded',trTM.f.domready)
-    }
-    // PAGEloaded state
-    var s = document.readyState;
-    if (s=='interactive' || s=='loaded' || s=='complete') {
-      trTM.f.pageready();
-    } else {
-      trTM.f.evLstn(window,'load',trTM.f.pageready)
-    }
-  }
-  return true;
+      if (filename) msg+= ' | file: ' + ev.filename;
+      var lineno = typeof ev.lineno!='string' ? ev.lineno.toString() : ev.lineno; if (lineno=='0') lineno = '';
+      if (lineno) msg+= ' | line: ' + lineno;
+      var colno = typeof ev.colno!='string' ? ev.colno.toString() : ev.colno; if (colno=='0') colno = '';
+      if (colno) msg+= ' | col: ' + colno;
+      trTM.d.errors.push(msg);
+      var browser = '';
+      try { browser = navigator.appCodeName+' | '+navigator.appName+' | '+navigator.appVersion+' | '+navigator.platform; } catch(e){};
+      if (trTM.d.error_counter++ >= 100) return;
+      if (trTM.d.error_counter <= 5) trTM.f.fire({ event:'exception', errmsg:msg, browser:browser, timestamp:new Date().getTime(), errct:trTM.d.error_counter, gtag:false, eventModel:null });
+    };
+    return;
+  });
 };
+
+/**
+ * Timer Funktion to fire Events
+ * @usage Timer Funktion to fire Events
+ * @lastupdate 13.03.2024 by Andi Petzoldt <andi@tracking-garden.com>
+ * @author Andi Petzoldt <andi@tracking-garden.com>
+ * @property {function} o.f.timerfkt
+ * Usage: o.f.timerfkt();
+ */
+trTM.f.timerfkt = trTM.f.timerfkt || function(obj) {
+  var ev = JSON.parse(JSON.stringify(obj));
+  ev.timer_ms = ev.timer_ms * 1;
+  ev.timer_ct++;
+  ev.timer_tm = ev.timer_ms * ev.timer_ct;
+  ev.timer_sc = parseFloat(( ev.timer_tm / 1000 ).toFixed(3));
+  ev.event = ev.event || 'timer';
+  if (ev.event.indexOf('[s]')) ev.event = ev.event.replace('[s]', ev.timer_sc.toString());
+  ev.eventModel = null;
+  ev.gtag = false;
+  trTM.f.fire(ev);
+};
+
+/**
+ * Define function to set Timer
+ * @usage Define function to set Timer
+ * @lastupdate 13.03.2024 by Andi Petzoldt <andi@tracking-garden.com>
+ * @author Andi Petzoldt <andi@tracking-garden.com>
+ * @property {function} o.f.timer
+ * @param {string} nm - Name of the Timer (just for debugging reasons). Leave it empty if you don't need it
+ * @param {function} ft - The function to execute when the timer expires. If not set (or set to false) the internal function trTM.f.timerfkt will be used.
+ * @param {function} ev - An event to fire. Leave it empty if you don't use this feature.
+ * @param {number} ms - The time in milliseconds after which the function f is executed or the event has to be send.
+ * @param {boolean} rp - The number how often the timer should be fired (0 for unlimited).
+ * Usage: trTM.f.timer( 'timer', false, {event:'timer'}, 15000, 3 );
+ */
+trTM.f.timer = trTM.f.timer || function (nm, ft, ev, ms, rp) {
+  // Create Timer Name
+  if (!nm && typeof ev=='object' && typeof ev.event=='string') nm = ev.event;
+  nm = nm || 'timer'; nm+= '_' + new Date().getTime().toString() + '_' + Math.floor((Math.random()*999999)+1).toString();
+  // Check, whether Timer already exists (and stop/delete it)
+  trTM.f.stoptimer(nm);
+  // Create Object
+  var obj = typeof ev=='object' ? JSON.parse(JSON.stringify(ev)) : {};
+  obj.timer_nm = nm; obj.timer_ms = ms; obj.timer_rp = rp; obj.timer_ct = 0;
+  // Set Timer
+  obj.id = obj.timer_rp==1
+    ? setTimeout(function() {
+        if (ft) { ft(obj); } else { trTM.f.timerfkt(obj); }
+    }, ms)
+    : setInterval(function() {
+        if (ft) { ft(obj); } else { trTM.f.timerfkt(obj); }
+        obj.timer_ct++;
+        if (obj.timer_rp>0 && obj.timer_ct>=obj.timer_rp) { trTM.f.stoptimer(obj.timer_nm); }
+    }, ms);
+  trTM.d.timer[nm] = obj;
+};
+
+/**
+ * Define function to set Timer
+ * @usage Define function to set Timer
+ * @lastupdate 13.03.2024 by Andi Petzoldt <andi@tracking-garden.com>
+ * @author Andi Petzoldt <andi@tracking-garden.com>
+ * @property {function} o.f.timer
+ * @param {string} nm - Name of the Timer to delete.
+ * Usage: trTM.f.stoptimer( 'timer_2234443_234534' );
+ */
+trTM.f.stoptimer = trTM.f.stoptimer || function (nm) {
+  if (typeof trTM.d.timer[nm]=='object') {
+    var t = trTM.d.timer[nm];
+    if (t.timer_rp) { clearInterval(t.id); } else { clearTimeout(t.id); };
+    delete trTM.d.timer[nm];
+  }
+};
+
+
+/***** Init and Fire Functions *****/
 
 /**
  * Function for to initialize and inject the trTM 
@@ -600,6 +819,8 @@ trTM.f.init = function () {
   } else {
     trTM.f.consent_listener();
   }
+  // Run JS error monitoring
+  trTM.f.jserrors();
 };
 
 /**
@@ -608,11 +829,15 @@ trTM.f.init = function () {
  * @param {object} o - the event object, e.g. { event:'pageview', pagetype:'blogarticle' }
  * Usage: trTM.f.fire({ event:'pageview', pagetype:'blogarticle' });
  */
-if (typeof trTM.f.fire!='function') trTM.f.fire = function (o) {
+trTM.f.fire = function (o) {
+  // Some checks and preparations
   if (typeof o!='object') { trTM.f.log('e9',{o:typeof o}); return; }
   var obj = JSON.parse(JSON.stringify(o));
-  if (typeof obj.eventModel=='object' && obj.eventModel) return;
-  window[trTM.c.gdl] = window[trTM.c.gdl] || [];
+  //if (typeof obj.eventModel=='object' && obj.eventModel) return;
+  //if (typeof obj.cmp=='object' && typeof obj.event=='string' && obj.event!='trTM_consent_init' && obj.event!='trTM_consent_update') return;
+  if (typeof obj.trTMts=='number' || typeof obj.eventModel=='object') return;
+  obj.trTMts = Date.now();
+  // Check whether event is a consent update event
   if (trTM.c.consent.consent_events && typeof obj.event=='string' && trTM.c.consent.consent_events.indexOf(','+obj.event+',')>=0) {
     if (typeof trTM.c.consent.consent_event_attr[obj.event]=='object') {
       for (k in trTM.c.consent.consent_event_attr[obj.event]) {
@@ -622,18 +847,28 @@ if (typeof trTM.f.fire!='function') trTM.f.fire = function (o) {
       }
     } else { trTM.f.run_cc('update'); }
   }
+  // Check whether Consent is available
+  if ((typeof trTM.d.consent!='object' || !trTM.d.consent.hasResponse) && (typeof obj.event!='string' || obj.event.indexOf('trTM')!==0)) {
+    trTM.d.f.push(JSON.parse(JSON.stringify(o)));
+    return;
+  }
+  // Send event to GTM
   if (trTM.c.gtm_use && trTM.d.consent.gtmConsent && (typeof obj.gtm!='boolean' || obj.gtm)) {
+    // Prepare params
     var gtmparams = JSON.parse(JSON.stringify(obj));
     if (typeof gtmparams['gtm.uniqueEventId']!='undefined') delete gtmparams['gtm.uniqueEventId'];
     if (typeof gtmparams.gtm!='undefined') delete gtmparams.gtm;
     if (typeof gtmparams.gtag!='undefined') delete gtmparams.gtag;
+    if (typeof gtmparams.trTMparams!='undefined') delete gtmparams.trTMparams;
     var gtmobj = JSON.parse(JSON.stringify(obj));
-    gtmobj.trTMparams = gtmparams;
-    gtmobj.eventModel = null;
+    if (typeof obj.event!='string' || obj.event.indexOf('trTM')!==0) gtmobj.trTMparams = gtmparams;
+    //gtmobj.eventModel = null;
+    //gtmobj.gtm = false;
     trTM.d.dl.push(gtmobj); window[trTM.c.gdl].push(gtmobj);
   }
-  if (trTM.c.gtag && trTM.d.consent.gtagConsent && (typeof obj.event=='string' && obj.event) && (typeof obj.gtag!='boolean' || obj.gtag)) {
-    if (typeof obj.gtagID=='string' && obj.gtagID) {
+  // Send event to GTAG
+  if (trTM.c.gtag && trTM.d.consent.gtagConsent && trTM.f.chkvar(obj.event,'string') && (typeof obj.gtag!='boolean' || obj.gtag)) {
+    if (trTM.f.chkvar(obj.gtagID,'string')) {
       obj.send_to = obj.gtagID;
       gtag('event', obj.event, obj);
     } else { 
@@ -643,12 +878,13 @@ if (typeof trTM.f.fire!='function') trTM.f.fire = function (o) {
       }
     }
   }
-  trTM.d.dl.push(obj);
-  if (typeof trTM.f.fire_callback=='function' && trTM.d.fired) trTM.f.fire_callback(obj);
+  // Fire callback function
+  if (typeof trTM.f.fire_callback=='function' && trTM.d.init) trTM.f.fire_callback(obj);
   trTM.f.log('m7', obj);
 };
 
 // Run
 trTM.f.init();
+
 
 //[trTM.js]EOF
