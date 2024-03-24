@@ -810,6 +810,9 @@ Feel free to contact me if you found problems or improvements:
 
 ## Changelog ##
 
+- Version 1.6.2, *24.03.2024*
+  - Code Optimization
+
 - Version 1.6.1, *20.03.2024*
   - Attributes for GTM event listener added
 
