@@ -1,6 +1,8 @@
-# trTM.js - Library for easy use GTM and/or GTAG #
-*trTM*
+# *discontinued* trTM.js - Library for easy use GTM and/or GTAG #
 
+** This project is continued in another project: [aTGM](https://github.com/Andiministrator/aGTM) ** 
+
+---
 
 ## Table of Contents ##
 
